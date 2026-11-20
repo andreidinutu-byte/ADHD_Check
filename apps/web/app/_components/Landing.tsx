@@ -62,11 +62,11 @@ export function Landing() {
       <Header t={t} lang={lang} setLang={writeLang} />
       <main id="main">
         <Hero t={t} />
-        {/* Temporary wrapper for Problem through Final to preserve dark contrast */}
+        <Problem t={t} />
+        <How t={t} />
+        <Game t={t} />
+        {/* Temporary wrapper for Result through Final to preserve dark contrast */}
         <div className="bg-dusk-deep text-moon">
-          <Problem t={t} />
-          <How t={t} />
-          <Game t={t} />
           <Result t={t} />
           <Offer t={t} />
           <Privacy t={t} />
@@ -111,12 +111,28 @@ function Container({ children, className = "" }: { children: ReactNode; classNam
   return <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
-function Kicker({ children }: { children: ReactNode }) {
-  return <p className="mb-3 font-display text-base font-semibold text-river-soft">{children}</p>;
+function Kicker({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
+  return (
+    <p
+      className={`mb-3 text-sm font-semibold tracking-wide sm:text-base ${
+        dark ? "text-lantern-warm" : "text-brand-teal"
+      }`}
+    >
+      {children}
+    </p>
+  );
 }
 
-function H2({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <h2 className={`font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl ${className}`}>{children}</h2>;
+function H2({ children, className = "", dark = false }: { children: ReactNode; className?: string; dark?: boolean }) {
+  return (
+    <h2
+      className={`font-editorial text-3xl font-semibold leading-tight sm:text-4xl md:text-5xl ${
+        dark ? "text-twilight-text" : "text-ink-primary"
+      } ${className}`}
+    >
+      {children}
+    </h2>
+  );
 }
 
 function CtaButton({
@@ -322,31 +338,47 @@ function Hero({ t }: { t: Dict }) {
 
 function Problem({ t }: { t: Dict }) {
   return (
-    <section className="relative bg-dusk-deep py-20 md:py-28">
+    <section className="relative border-y border-line bg-paper-2 py-20 text-ink-primary md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
           <Kicker>{t.problem.kicker}</Kicker>
           <H2>{t.problem.title}</H2>
         </div>
-        <ul className="mt-10 grid gap-x-10 gap-y-6 md:grid-cols-2">
+        <ul className="mt-10 grid gap-x-12 gap-y-8 md:grid-cols-2">
           {t.problem.items.map((item, i) => (
-            <li key={i} className="reveal border-t border-lavender/15 pt-5 text-lg leading-relaxed text-moon">
+            <li
+              key={i}
+              className="reveal border-t border-line pt-5 text-lg leading-relaxed text-ink-primary"
+            >
               “{item}”
             </li>
           ))}
         </ul>
 
-        <p className="reveal mt-16 text-base font-semibold text-lavender">{t.problem.statsIntro}</p>
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <p className="reveal mt-16 text-base font-semibold text-ink-secondary">{t.problem.statsIntro}</p>
+        <div className="mt-5 grid gap-6 md:grid-cols-2">
           {t.problem.stats.map((s, i) => (
-            <figure key={i} className="reveal dusk-surface flex flex-col p-6">
-              <p className="font-display text-4xl font-bold tabular-nums text-lantern md:text-5xl">{s.value}</p>
-              <p className="mt-3 flex-1 leading-relaxed text-moon">{s.label}</p>
-              <figcaption className="mt-5 border-t border-white/10 pt-3 text-sm text-lavender-muted">{s.source}</figcaption>
+            <figure
+              key={i}
+              className="reveal flex flex-col justify-between rounded-2xl border border-line bg-surface p-7 shadow-xs"
+            >
+              <p className="font-editorial text-4xl font-semibold tabular-nums text-brand-teal md:text-5xl">
+                {s.value}
+              </p>
+              <p className="mt-3 flex-1 text-base leading-relaxed text-ink-primary md:text-lg">
+                {s.label}
+              </p>
+              <figcaption className="mt-6 border-t border-line pt-4 text-xs font-medium leading-normal text-ink-secondary">
+                {s.source}
+              </figcaption>
             </figure>
           ))}
         </div>
-        <p className="reveal mt-14 max-w-3xl font-display text-2xl font-semibold leading-snug md:text-3xl">{t.problem.punch}</p>
+        <div className="reveal mt-14 max-w-3xl border-l-2 border-brand-teal pl-6">
+          <p className="font-editorial text-2xl font-semibold leading-snug text-ink-primary md:text-3xl text-balance">
+            {t.problem.punch}
+          </p>
+        </div>
       </Container>
     </section>
   );
@@ -356,33 +388,38 @@ function Problem({ t }: { t: Dict }) {
 
 function How({ t }: { t: Dict }) {
   return (
-    <section id="how" className="relative overflow-hidden bg-dusk py-20 md:py-28">
-      <Fireflies count={6} />
+    <section id="how" className="relative bg-paper py-20 text-ink-primary md:py-28">
       <Container className="relative">
         <div className="reveal max-w-3xl">
           <Kicker>{t.how.kicker}</Kicker>
           <H2>{t.how.title}</H2>
         </div>
-        <div className="mt-12 grid items-start gap-10 lg:grid-cols-[1.25fr_0.75fr]">
+        <div className="mt-12 grid items-start gap-12 lg:grid-cols-[1.25fr_0.75fr]">
           <ol className="space-y-8">
             {t.how.steps.map((s, i) => (
               <li key={i} className="reveal flex gap-5">
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-river font-display text-xl font-bold text-dusk-deep">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-teal-soft font-editorial text-base font-semibold text-brand-teal">
                   {i + 1}
                 </span>
                 <div>
-                  <h3 className="font-display text-2xl font-semibold">
+                  <h3 className="font-editorial text-xl font-semibold text-ink-primary sm:text-2xl">
                     {s.title}
-                    <span className="ml-3 align-middle text-sm font-bold text-river-soft">{s.time}</span>
+                    <span className="ml-3 inline-block rounded-full border border-line bg-paper-2 px-2.5 py-0.5 align-middle text-xs font-semibold text-ink-secondary">
+                      {s.time}
+                    </span>
                   </h3>
-                  <p className="mt-2 max-w-xl text-lg leading-relaxed text-lavender">{s.body}</p>
+                  <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-secondary md:text-lg">
+                    {s.body}
+                  </p>
                 </div>
               </li>
             ))}
           </ol>
           <figure className="reveal mx-auto w-full max-w-sm">
-            <figcaption className="mb-3 text-center text-sm font-semibold text-lavender">{t.how.handbackLabel}</figcaption>
-            <div className="relative overflow-hidden rounded-[2rem] border-[8px] border-[#0d0a24]">
+            <figcaption className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-ink-secondary">
+              {t.how.handbackLabel}
+            </figcaption>
+            <div className="relative overflow-hidden rounded-[2rem] border-[6px] border-twilight-2/80 bg-twilight shadow-xl">
               <Image
                 src="/landing/treasure-choice-wide.jpg"
                 alt=""
@@ -391,8 +428,8 @@ function How({ t }: { t: Dict }) {
                 sizes="(min-width: 1024px) 24rem, 90vw"
                 className="block aspect-[4/3] h-auto w-full object-cover object-[50%_40%]"
               />
-              <div className="absolute inset-0 grid place-items-center bg-dusk-deep/70 p-6">
-                <p className="rounded-2xl bg-[#fffdf7] px-5 py-4 text-center font-display text-xl font-semibold leading-snug text-[#2a1f5c] shadow-xl">
+              <div className="absolute inset-0 flex items-center justify-center bg-twilight/65 p-5">
+                <p className="rounded-xl border border-line bg-paper px-5 py-4 text-center font-editorial text-lg font-semibold leading-snug text-ink-primary shadow-lg">
                   {t.how.handback}
                 </p>
               </div>
@@ -408,16 +445,20 @@ function How({ t }: { t: Dict }) {
 
 function Game({ t }: { t: Dict }) {
   return (
-    <section className="bg-dusk-deep py-20 md:py-28">
-      <Container>
+    <section className="relative overflow-hidden bg-twilight py-20 text-twilight-text md:py-28">
+      <Fireflies count={6} />
+      <Container className="relative">
         <div className="reveal max-w-3xl">
-          <Kicker>{t.game.kicker}</Kicker>
-          <H2>{t.game.title}</H2>
-          <p className="mt-4 text-lg text-lavender">{t.game.sub}</p>
+          <Kicker dark>{t.game.kicker}</Kicker>
+          <H2 dark>{t.game.title}</H2>
+          <p className="mt-4 text-lg leading-relaxed text-twilight-muted">{t.game.sub}</p>
         </div>
-        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {t.game.games.map((g) => (
-            <li key={g.name} className="reveal overflow-hidden rounded-3xl bg-dusk-2/60">
+            <li
+              key={g.name}
+              className="reveal flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-twilight-2 shadow-md transition-transform duration-200 hover:-translate-y-1"
+            >
               {g.img ? (
                 <Image
                   src={g.img}
@@ -428,26 +469,28 @@ function Game({ t }: { t: Dict }) {
                   className="block aspect-[4/3] h-auto w-full object-cover"
                 />
               ) : (
-                <div className="grid aspect-[4/3] place-items-center bg-[radial-gradient(circle_at_50%_40%,#2fbfae55,#1d1640_70%)]" aria-hidden="true">
-                  <Compass className="size-14 text-river-soft" />
+                <div className="grid aspect-[4/3] place-items-center bg-twilight" aria-hidden="true">
+                  <Compass className="size-12 text-river-soft" />
                 </div>
               )}
-              <div className="p-5">
-                <h3 className="font-display text-xl font-semibold">{g.name}</h3>
-                <p className="mt-1 leading-relaxed text-lavender">{g.what}</p>
+              <div className="flex flex-1 flex-col p-5">
+                <h3 className="font-editorial text-xl font-semibold text-twilight-text">{g.name}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-twilight-muted">{g.what}</p>
               </div>
             </li>
           ))}
         </ul>
-        <p className="reveal mt-6 flex flex-wrap items-center gap-3 text-lavender">
-          <span className="rounded-lg bg-lantern/15 px-2.5 py-1 text-sm font-bold text-lantern">{t.game.coreLabel}</span>
-          {t.game.core}
-        </p>
-        <ul className="reveal mt-10 flex flex-wrap gap-x-6 gap-y-3 font-semibold text-moon">
+        <div className="reveal mt-8 flex flex-wrap items-center gap-3 text-sm text-twilight-muted">
+          <span className="rounded-md border border-lantern-warm/30 bg-lantern-warm/15 px-2.5 py-1 text-xs font-semibold text-lantern-warm">
+            {t.game.coreLabel}
+          </span>
+          <span className="leading-relaxed">{t.game.core}</span>
+        </div>
+        <ul className="reveal mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-8 text-sm font-medium text-twilight-text">
           {t.game.calm.map((c) => (
-            <li key={c} className="flex items-center gap-2">
-              <Check className="size-5 text-river-soft" />
-              {c}
+            <li key={c} className="flex items-center gap-2.5">
+              <Check className="size-4 text-river-soft" />
+              <span>{c}</span>
             </li>
           ))}
         </ul>
@@ -463,8 +506,8 @@ function Result({ t }: { t: Dict }) {
     <section className="bg-dusk py-20 md:py-28">
       <Container className="grid items-center gap-10 md:grid-cols-2">
         <div className="reveal">
-          <Kicker>{t.result.kicker}</Kicker>
-          <H2>{t.result.title}</H2>
+          <Kicker dark>{t.result.kicker}</Kicker>
+          <H2 dark>{t.result.title}</H2>
           <p className="mt-5 text-lg text-lavender">{t.result.sub}</p>
         </div>
         <div className="reveal space-y-3">
@@ -493,8 +536,8 @@ function Offer({ t }: { t: Dict }) {
     <section id="offer" className="bg-dusk-deep py-20 md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
-          <Kicker>{t.offer.kicker}</Kicker>
-          <H2>{t.offer.title}</H2>
+          <Kicker dark>{t.offer.kicker}</Kicker>
+          <H2 dark>{t.offer.title}</H2>
         </div>
         <div className="mt-12 grid gap-5 md:grid-cols-2">
           <article className="reveal dusk-surface flex flex-col p-7">
@@ -542,8 +585,8 @@ function Privacy({ t }: { t: Dict }) {
     <section id="privacy" className="bg-dusk py-20 md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
-          <Kicker>{t.privacy.kicker}</Kicker>
-          <H2>{t.privacy.title}</H2>
+          <Kicker dark>{t.privacy.kicker}</Kicker>
+          <H2 dark>{t.privacy.title}</H2>
         </div>
         <dl className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2 lg:grid-cols-3">
           {t.privacy.items.map((p) => (
@@ -568,8 +611,8 @@ function Faq({ t }: { t: Dict }) {
     <section id="faq" className="bg-dusk-deep py-20 md:py-28">
       <Container className="max-w-3xl">
         <div className="reveal">
-          <Kicker>{t.faq.kicker}</Kicker>
-          <H2>{t.faq.title}</H2>
+          <Kicker dark>{t.faq.kicker}</Kicker>
+          <H2 dark>{t.faq.title}</H2>
         </div>
         <div className="mt-10 divide-y divide-lavender/15 border-y border-lavender/15">
           {t.faq.items.map((f, i) => (
@@ -620,7 +663,7 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,#3a2d7a_0%,transparent_65%)]" aria-hidden="true" />
       <Fireflies />
       <Container className="relative max-w-3xl text-center">
-        <H2 className="md:text-6xl">{t.final.title}</H2>
+        <H2 dark className="md:text-6xl">{t.final.title}</H2>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-lavender">{t.final.sub}</p>
 
         {state === "ok" ? (
