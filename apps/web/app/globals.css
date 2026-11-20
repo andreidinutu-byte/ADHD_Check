@@ -43,6 +43,7 @@
   --brand-teal-soft: #E5F4F2;
   --twilight: #131A36;
   --twilight-2: #1C264D;
+  --twilight-deep: #0D1226;
   --twilight-text: #F2F5FF;
   --twilight-muted: #B6C0DF;
   --lantern-warm: #F5B841;
@@ -87,6 +88,7 @@
   --color-brand-teal-soft: var(--brand-teal-soft);
   --color-twilight: var(--twilight);
   --color-twilight-2: var(--twilight-2);
+  --color-twilight-deep: var(--twilight-deep);
   --color-twilight-text: var(--twilight-text);
   --color-twilight-muted: var(--twilight-muted);
   --color-lantern-warm: var(--lantern-warm);
@@ -116,8 +118,8 @@ h3 {
 }
 
 :focus-visible {
-  outline: 3px solid var(--glow);
-  outline-offset: 3px;
+  outline: 2px solid var(--brand-teal);
+  outline-offset: 2px;
   border-radius: 8px;
 }
 

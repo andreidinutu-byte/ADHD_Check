@@ -265,7 +265,7 @@ function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) 
 function Hero({ t }: { t: Dict }) {
   return (
     <section id="hero" className="relative bg-paper pb-16 pt-8 sm:pt-14 md:pb-24">
-      <Container className="relative text-center">
+      <Container className="relative z-10 text-center">
         <p className="text-sm font-semibold tracking-wide text-brand-teal sm:text-base">{t.hero.eyebrow}</p>
         <h1 className="mx-auto mt-4 max-w-4xl font-editorial text-4xl font-semibold leading-[1.08] tracking-tight text-ink-primary sm:text-5xl md:text-6xl lg:text-7xl text-balance">
           {t.hero.title}
@@ -298,9 +298,9 @@ function Hero({ t }: { t: Dict }) {
         <div className="twilight-window relative mx-auto mt-12 max-w-5xl overflow-hidden rounded-[2rem] p-5 shadow-xl sm:p-7 md:mt-16 md:p-9 lg:p-11">
           <Fireflies count={5} />
 
-          <div className="relative mx-auto flex w-full items-center justify-center">
+          <div className="relative mx-auto w-full md:max-w-[88%] lg:max-w-[86%]">
             {/* Tablet Landscape - visible from md upwards */}
-            <div className="relative hidden overflow-hidden rounded-[1.75rem] border-[6px] border-twilight-2/80 shadow-2xl md:block md:w-[74%] lg:w-[76%]">
+            <div className="relative hidden overflow-hidden rounded-[1.75rem] border-[6px] border-twilight-2/80 shadow-2xl md:block md:w-[78%] lg:w-[80%]">
               <Image
                 src="/landing/treasure-choice-play.jpg"
                 alt=""
@@ -313,7 +313,7 @@ function Hero({ t }: { t: Dict }) {
             </div>
 
             {/* Phone Portrait - centered on mobile, positioned bottom-right on tablet/desktop */}
-            <div className="relative mx-auto w-[68%] max-w-[240px] overflow-hidden rounded-[2.2rem] border-[6px] border-twilight-2/90 shadow-2xl md:absolute md:bottom-2 md:right-2 md:mx-0 md:w-[26%] md:max-w-[240px] lg:bottom-4 lg:right-4 lg:w-[25%]">
+            <div className="relative mx-auto w-[68%] max-w-[240px] overflow-hidden rounded-[2.2rem] border-[6px] border-twilight-2/90 shadow-2xl md:absolute md:bottom-2 md:right-0 lg:bottom-4 md:w-[26%] lg:w-[25%]">
               <Image
                 src="/landing/bridge-wait-portrait.jpg"
                 alt={t.hero.imgAlt}
@@ -444,7 +444,7 @@ function Game({ t }: { t: Dict }) {
   return (
     <section className="relative overflow-hidden bg-twilight py-20 text-twilight-text md:py-28">
       <Fireflies count={6} />
-      <Container className="relative">
+      <Container className="relative z-10">
         <div className="reveal max-w-3xl">
           <Kicker dark>{t.game.kicker}</Kicker>
           <H2 dark>{t.game.title}</H2>
@@ -664,7 +664,7 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
   return (
     <section id="start" className="relative overflow-hidden bg-twilight py-20 text-twilight-text md:py-28">
       <Fireflies count={6} />
-      <Container className="relative max-w-3xl text-center">
+      <Container className="relative z-10 max-w-3xl text-center">
         <H2 dark className="md:text-5xl lg:text-6xl text-balance">{t.final.title}</H2>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-twilight-muted text-pretty">{t.final.sub}</p>
 
@@ -697,7 +697,7 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
               <button
                 type="submit"
                 disabled={state === "sending"}
-                className="btn-editorial-lantern min-h-13 cursor-pointer rounded-xl px-7 text-base font-semibold disabled:cursor-wait disabled:opacity-60"
+                className="btn-editorial-lantern min-h-13 cursor-pointer rounded-xl px-7 text-base font-semibold whitespace-nowrap shrink-0 bg-lantern-warm text-on-lantern disabled:cursor-wait disabled:opacity-60"
               >
                 {state === "sending" ? t.final.sending : t.final.formCta}
               </button>
@@ -719,12 +719,25 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
 
 function Footer({ t }: { t: Dict }) {
   return (
-    <footer className="border-t border-white/10 bg-twilight pb-28 pt-12 text-sm text-twilight-muted md:pb-12">
-      <Container className="space-y-4">
-        <Logo dark />
-        <p className="font-semibold text-twilight-text">{t.footer.pilot}</p>
-        <p className="max-w-md leading-relaxed text-twilight-muted text-pretty">{t.footer.disclaimer}</p>
-        <p className="text-xs text-twilight-muted/80">{t.footer.event}</p>
+    <footer className="border-t border-white/10 bg-twilight-deep pb-28 pt-14 text-sm text-twilight-muted md:pb-14">
+      <Container className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-4">
+          <Logo dark />
+          <p className="font-semibold text-twilight-text">{t.footer.pilot}</p>
+          <p className="max-w-md leading-relaxed text-twilight-muted text-pretty">
+            {t.footer.disclaimer}
+          </p>
+        </div>
+        <div className="flex flex-col gap-6 md:items-end">
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-twilight-muted">
+            <a className="transition-colors hover:text-twilight-text" href="#how">{t.nav.how}</a>
+            <a className="transition-colors hover:text-twilight-text" href="#offer">{t.nav.offer}</a>
+            <a className="transition-colors hover:text-twilight-text" href="#privacy">{t.nav.privacy}</a>
+            <a className="transition-colors hover:text-twilight-text" href="#faq">{t.nav.faq}</a>
+            <a className="transition-colors hover:text-twilight-text" href="/login">{t.nav.login}</a>
+          </nav>
+          <p className="text-xs text-twilight-muted/90 md:text-right">{t.footer.event}</p>
+        </div>
       </Container>
     </footer>
   );

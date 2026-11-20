@@ -13,6 +13,7 @@ colors:
   brand-teal-soft: "#E5F4F2"
   twilight: "#131A36"
   twilight-2: "#1C264D"
+  twilight-deep: "#0D1226"
   twilight-text: "#F2F5FF"
   twilight-muted: "#B6C0DF"
   lantern-warm: "#F5B841"
@@ -86,6 +87,7 @@ The visual system adopts a hybrid concept:
 ### Luma Twilight Windows
 * `twilight: #131A36` — Deep nocturnal frame background.
 * `twilight-2: #1C264D` — Internal nocturnal cards.
+* `twilight-deep: #0D1226` — Deep nocturnal footer canvas.
 * `twilight-text: #F2F5FF` — High-contrast text on navy.
 * `twilight-muted: #B6C0DF` — Secondary nocturnal descriptions.
 * `lantern-warm: #F5B841` — Warm spark for Luma and nighttime action points.
