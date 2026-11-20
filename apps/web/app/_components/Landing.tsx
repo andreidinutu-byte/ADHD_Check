@@ -110,11 +110,7 @@ function Container({ children, className = "" }: { children: ReactNode; classNam
 
 function Kicker({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
   return (
-    <p
-      className={`mb-3 text-sm font-semibold tracking-wide sm:text-base ${
-        dark ? "text-lantern-warm" : "text-brand-teal"
-      }`}
-    >
+    <p className={`mb-3 text-sm font-bold tracking-wide sm:text-base ${dark ? "text-story-luma" : "text-brand-teal"}`}>
       {children}
     </p>
   );
@@ -123,8 +119,8 @@ function Kicker({ children, dark = false }: { children: ReactNode; dark?: boolea
 function H2({ children, className = "", dark = false }: { children: ReactNode; className?: string; dark?: boolean }) {
   return (
     <h2
-      className={`font-editorial text-3xl font-semibold leading-tight sm:text-4xl md:text-5xl ${
-        dark ? "text-twilight-text" : "text-ink-primary"
+      className={`font-storybook text-3xl font-bold leading-tight sm:text-4xl md:text-5xl text-balance ${
+        dark ? "text-story-ink" : "text-ink-primary"
       } ${className}`}
     >
       {children}
@@ -290,7 +286,7 @@ function Hero({ t }: { t: Dict }) {
                 height={1600}
                 sizes="(min-width: 768px) 55vw, 0px"
                 className="block h-auto w-full object-cover"
-                loading="eager"
+                priority
               />
             </div>
 
@@ -303,7 +299,7 @@ function Hero({ t }: { t: Dict }) {
                 height={1640}
                 sizes="(min-width: 768px) 25vw, 68vw"
                 className="block h-auto w-full object-cover"
-                preload
+                priority
               />
             </div>
           </div>
@@ -317,46 +313,68 @@ function Hero({ t }: { t: Dict }) {
 
 function Problem({ t }: { t: Dict }) {
   return (
-    <section className="relative border-y border-line bg-paper-2 py-20 text-ink-primary md:py-28">
+    <section id="problem" className="relative border-y border-story-line bg-story-night-alt py-20 text-story-ink md:py-28">
       <Container>
-        <div className="reveal max-w-3xl">
-          <Kicker>{t.problem.kicker}</Kicker>
-          <H2>{t.problem.title}</H2>
-        </div>
-        <ul className="mt-10 grid gap-x-12 gap-y-8 md:grid-cols-2">
-          {t.problem.items.map((item, i) => (
-            <li
-              key={i}
-              className="reveal border-t border-line pt-5 text-lg leading-relaxed text-ink-primary text-pretty"
-            >
-              “{item}”
-            </li>
-          ))}
-        </ul>
+        <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 items-start">
+          {/* Left Column - Sticky on desktop */}
+          <div className="reveal lg:sticky lg:top-24 space-y-6">
+            <div>
+              <Kicker dark>{t.problem.kicker}</Kicker>
+              <H2 dark className="text-balance">{t.problem.title}</H2>
+            </div>
+            <div className="border-l-2 border-story-luma pl-5 py-1">
+              <p className="font-storybook text-xl font-bold leading-snug text-story-ink text-balance sm:text-2xl">
+                {t.problem.punch}
+              </p>
+            </div>
+          </div>
 
-        <p className="reveal mt-16 text-base font-semibold text-ink-secondary">{t.problem.statsIntro}</p>
-        <div className="mt-5 grid gap-6 md:grid-cols-2">
-          {t.problem.stats.map((s, i) => (
-            <figure
-              key={i}
-              className="reveal flex flex-col justify-between rounded-2xl border border-line bg-surface p-7 shadow-xs"
-            >
-              <p className="font-editorial text-4xl font-semibold tabular-nums text-brand-teal md:text-5xl">
-                {s.value}
+          {/* Right Column - Editorial Stream + Monumental Stats */}
+          <div className="space-y-12">
+            {/* Parent Quotes */}
+            <ul className="space-y-6">
+              {t.problem.items.map((item, i) => (
+                <li
+                  key={i}
+                  className="reveal border-t border-story-line pt-5 flex items-start gap-4"
+                >
+                  <span className="font-mono text-xs font-bold text-story-luma/80 shrink-0 pt-1">
+                    0{i + 1}
+                  </span>
+                  <p className="text-base sm:text-lg leading-relaxed text-story-muted text-pretty">
+                    “{item}”
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            {/* Research Stats */}
+            <div className="reveal pt-4">
+              <p className="text-sm font-bold uppercase tracking-wider text-story-luma">
+                {t.problem.statsIntro}
               </p>
-              <p className="mt-3 flex-1 text-base leading-relaxed text-ink-primary md:text-lg">
-                {s.label}
-              </p>
-              <figcaption className="mt-6 border-t border-line pt-4 text-xs font-medium leading-normal text-ink-secondary">
-                {s.source}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-        <div className="reveal mt-14 max-w-3xl border-l-2 border-brand-teal pl-6">
-          <p className="font-editorial text-2xl font-semibold leading-snug text-ink-primary md:text-3xl text-balance">
-            {t.problem.punch}
-          </p>
+              <div className="mt-6 grid gap-8 border-y border-story-line py-8 md:grid-cols-2 md:divide-x md:divide-story-line">
+                {t.problem.stats.map((s, i) => (
+                  <figure
+                    key={i}
+                    className={`flex flex-col justify-between ${i > 0 ? "md:pl-8" : "md:pr-8"}`}
+                  >
+                    <div>
+                      <p className="font-storybook text-5xl font-bold tabular-nums text-story-lantern sm:text-6xl">
+                        {s.value}
+                      </p>
+                      <p className="mt-3 text-base sm:text-lg leading-relaxed text-story-ink text-pretty">
+                        {s.label}
+                      </p>
+                    </div>
+                    <figcaption className="mt-6 text-xs leading-normal text-story-muted/80">
+                      {s.source}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </Container>
     </section>
@@ -367,49 +385,56 @@ function Problem({ t }: { t: Dict }) {
 
 function How({ t }: { t: Dict }) {
   return (
-    <section id="how" className="relative bg-paper py-20 text-ink-primary md:py-28">
+    <section id="how" className="relative bg-story-night py-20 text-story-ink md:py-28">
       <Container className="relative">
-        <div className="reveal max-w-3xl">
-          <Kicker>{t.how.kicker}</Kicker>
-          <H2>{t.how.title}</H2>
-        </div>
-        <div className="mt-12 grid items-start gap-12 lg:grid-cols-[1.25fr_0.75fr]">
-          <ol className="space-y-8">
-            {t.how.steps.map((s, i) => (
-              <li key={i} className="reveal flex gap-5">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-teal-soft font-editorial text-base font-semibold text-brand-teal">
-                  {i + 1}
-                </span>
-                <div>
-                  <h3 className="font-editorial text-xl font-semibold text-ink-primary sm:text-2xl">
-                    {s.title}
-                    <span className="ml-3 inline-block rounded-full border border-line bg-paper-2 px-2.5 py-0.5 align-middle text-xs font-semibold text-ink-secondary">
-                      {s.time}
-                    </span>
-                  </h3>
-                  <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-secondary md:text-lg">
-                    {s.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <figure className="reveal mx-auto w-full max-w-sm">
-            <figcaption className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-ink-secondary">
+        <div className="grid items-start gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+          {/* Left Column: Heading + Story chapters */}
+          <div className="reveal space-y-8">
+            <div>
+              <Kicker dark>{t.how.kicker}</Kicker>
+              <H2 dark className="text-balance">{t.how.title}</H2>
+            </div>
+            <ol className="relative space-y-8 before:absolute before:left-5 before:top-4 before:bottom-4 before:w-px before:bg-story-line">
+              {t.how.steps.map((s, i) => (
+                <li key={i} className="relative flex items-start gap-5">
+                  <span className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-xl border border-story-line bg-story-surface font-storybook text-base font-bold text-story-lantern shadow-xs">
+                    0{i + 1}
+                  </span>
+                  <div className="pt-0.5">
+                    <h3 className="font-storybook text-xl font-bold text-story-ink sm:text-2xl">
+                      {s.title}
+                      <span className="ml-3 inline-block rounded-full border border-story-line bg-story-surface px-2.5 py-0.5 align-middle text-xs font-semibold text-story-luma">
+                        {s.time}
+                      </span>
+                    </h3>
+                    <p className="mt-2 max-w-xl text-base leading-relaxed text-story-muted sm:text-lg text-pretty">
+                      {s.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Right Column: Handback moment */}
+          <figure className="reveal mx-auto w-full max-w-md lg:mt-6">
+            <figcaption className="mb-3 text-center text-xs font-bold uppercase tracking-wider text-story-luma">
               {t.how.handbackLabel}
             </figcaption>
-            <div className="relative overflow-hidden rounded-[2rem] border-[6px] border-twilight-2/80 bg-twilight shadow-xl">
-              <Image
-                src="/landing/treasure-choice-wide.jpg"
-                alt=""
-                width={2400}
-                height={1600}
-                sizes="(min-width: 1024px) 24rem, 90vw"
-                className="block aspect-[4/3] h-auto w-full object-cover object-[50%_40%]"
-              />
-              <div className="absolute inset-x-0 bottom-0 border-t border-line bg-paper/95 px-5 py-4 text-center backdrop-blur-xs">
-                <p className="font-editorial text-base font-semibold leading-snug text-ink-primary md:text-lg">
-                  {t.how.handback}
+            <div className="relative overflow-hidden rounded-[2rem] border border-story-line bg-story-surface p-4 shadow-2xl">
+              <div className="overflow-hidden rounded-2xl border border-story-line/60">
+                <Image
+                  src="/landing/treasure-choice-wide.jpg"
+                  alt=""
+                  width={2400}
+                  height={1600}
+                  sizes="(min-width: 1024px) 26rem, 90vw"
+                  className="block aspect-[4/3] h-auto w-full object-cover object-[50%_40%]"
+                />
+              </div>
+              <div className="pt-4 text-center">
+                <p className="font-storybook text-base font-bold leading-snug text-story-ink sm:text-lg text-pretty">
+                  “{t.how.handback}”
                 </p>
               </div>
             </div>
@@ -423,52 +448,132 @@ function How({ t }: { t: Dict }) {
 /* ---------- game ---------- */
 
 function Game({ t }: { t: Dict }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const activeGame = t.game.games[activeIdx] ?? t.game.games[0];
+  const isPortrait = activeGame.img?.includes("portrait") || activeGame.img?.includes("bridge-wait");
+
   return (
-    <section className="relative overflow-hidden bg-twilight py-20 text-twilight-text md:py-28">
+    <section id="game" className="relative overflow-hidden bg-story-night-alt py-20 text-story-ink md:py-28">
       <Fireflies count={6} />
       <Container className="relative z-10">
         <div className="reveal max-w-3xl">
           <Kicker dark>{t.game.kicker}</Kicker>
-          <H2 dark>{t.game.title}</H2>
-          <p className="mt-4 text-lg leading-relaxed text-twilight-muted">{t.game.sub}</p>
+          <H2 dark className="text-balance">{t.game.title}</H2>
+          <p className="mt-4 text-base leading-relaxed text-story-muted sm:text-lg text-pretty">
+            {t.game.sub}
+          </p>
         </div>
-        <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {t.game.games.map((g) => (
-            <li
-              key={g.name}
-              className="reveal flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-twilight-2 shadow-md transition-transform duration-200 hover:-translate-y-1"
-            >
-              {g.img ? (
-                <Image
-                  src={g.img}
-                  alt=""
-                  width={1200}
-                  height={900}
-                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                  className="block aspect-[4/3] h-auto w-full object-cover"
-                />
+
+        {/* Master-Detail Stage */}
+        <div className="mt-12 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] items-stretch">
+          {/* Big Stage (Screen) */}
+          <div className="reveal flex flex-col justify-between rounded-[2rem] border border-story-line bg-story-surface p-5 shadow-2xl sm:p-6">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-story-line/60 bg-story-night">
+              {activeGame.img ? (
+                isPortrait ? (
+                  <div className="relative flex size-full items-center justify-center p-3 sm:p-4">
+                    <div className="relative h-full aspect-[9/16] max-h-[360px] overflow-hidden rounded-[1.75rem] border-4 border-story-line/80 bg-story-night shadow-xl">
+                      <Image
+                        src={activeGame.img}
+                        alt={activeGame.what}
+                        width={860}
+                        height={1640}
+                        sizes="(min-width: 1024px) 25vw, 60vw"
+                        className="block size-full object-cover"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Image
+                    src={activeGame.img}
+                    alt={activeGame.what}
+                    width={2400}
+                    height={1600}
+                    sizes="(min-width: 1024px) 50vw, 90vw"
+                    className="block size-full object-cover"
+                  />
+                )
               ) : (
-                <div className="grid aspect-[4/3] place-items-center bg-twilight" aria-hidden="true">
-                  <Compass className="size-12 text-river-soft" />
+                <div className="grid size-full place-items-center bg-story-night text-story-luma" aria-hidden="true">
+                  <Compass className="size-16" />
                 </div>
               )}
-              <div className="flex flex-1 flex-col p-5">
-                <h3 className="font-editorial text-xl font-semibold text-twilight-text">{g.name}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-twilight-muted">{g.what}</p>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+              <div>
+                <h3 className="font-storybook text-2xl font-bold text-story-ink sm:text-3xl">
+                  {activeGame.name}
+                </h3>
+                <p className="mt-1 text-base text-story-muted text-pretty">
+                  {activeGame.what}
+                </p>
               </div>
-            </li>
-          ))}
-        </ul>
-        <div className="reveal mt-8 flex flex-wrap items-center gap-3 text-sm text-twilight-muted">
-          <span className="rounded-md border border-lantern-warm/30 bg-lantern-warm/15 px-2.5 py-1 text-xs font-semibold text-lantern-warm">
+              <span className="mt-2 text-xs font-bold uppercase tracking-wider text-story-luma shrink-0 sm:mt-0">
+                {activeIdx + 1} / {t.game.games.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Adventure Selector (Right side tablist) */}
+          <div role="tablist" aria-label={t.game.title} className="reveal flex flex-col gap-3 justify-center">
+            {t.game.games.map((g, i) => {
+              const isActive = activeIdx === i;
+              return (
+                <button
+                  key={g.name}
+                  type="button"
+                  role="tab"
+                  id={`tab-${i}`}
+                  aria-selected={isActive}
+                  aria-controls={`panel-${i}`}
+                  onClick={() => setActiveIdx(i)}
+                  className={`group flex items-center gap-4 rounded-2xl border p-4 text-left transition-all cursor-pointer ${
+                    isActive
+                      ? "border-story-lantern bg-story-surface shadow-md ring-1 ring-story-lantern/40"
+                      : "border-story-line bg-story-surface/40 hover:bg-story-surface hover:border-story-line/80"
+                  }`}
+                >
+                  <span
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl font-storybook text-sm font-bold transition-colors ${
+                      isActive
+                        ? "bg-story-lantern text-story-on-lantern"
+                        : "border border-story-line bg-story-night text-story-muted group-hover:text-story-ink"
+                    }`}
+                  >
+                    0{i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`font-storybook text-lg font-bold truncate transition-colors ${
+                        isActive ? "text-story-ink" : "text-story-muted group-hover:text-story-ink"
+                      }`}
+                    >
+                      {g.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-story-muted/80 truncate">
+                      {g.what}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Core dev note */}
+        <div className="reveal mt-10 inline-flex flex-wrap items-center gap-3 rounded-2xl border border-story-line bg-story-surface px-4 py-3 text-sm text-story-muted">
+          <span className="rounded-lg border border-story-lantern/30 bg-story-lantern/15 px-2.5 py-1 text-xs font-bold text-story-lantern">
             {t.game.coreLabel}
           </span>
           <span className="leading-relaxed">{t.game.core}</span>
         </div>
-        <ul className="reveal mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-8 text-sm font-medium text-twilight-text">
+
+        {/* Calm commitments */}
+        <ul className="reveal mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-story-line pt-8 text-sm font-semibold text-story-muted">
           {t.game.calm.map((c) => (
             <li key={c} className="flex items-center gap-2.5">
-              <Check className="size-4 text-river-soft" />
+              <Check className="size-4 text-story-luma shrink-0" />
               <span>{c}</span>
             </li>
           ))}
