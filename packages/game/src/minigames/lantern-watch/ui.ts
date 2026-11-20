@@ -12,7 +12,9 @@ width:max-content;max-width:min(84vw,520px);box-sizing:border-box;padding:16px 2
 background:#fffdf7;color:#2a1f5c;font-size:clamp(19px,2.9vw,28px);line-height:1.28;font-weight:800;text-align:center;
 box-shadow:0 5px 0 #d9cff5,0 14px 30px rgba(12,8,48,.38);transition:opacity .16s ease-out,transform .3s cubic-bezier(.16,1,.3,1)}
 .lw-bubble.on{opacity:1;transform:translate(-50%,-100%) scale(1)}
-.lw-tail{position:absolute;bottom:-15px;width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:17px solid #fffdf7;transform:translateX(-50%)}
+.lw-bubble{transform:translate(0,-50%) scale(.6);transform-origin:0 50%}
+.lw-bubble.on{transform:translate(0,-50%) scale(1)}
+.lw-tail{position:absolute;left:-15px;top:50%;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-right:17px solid #fffdf7;transform:translateY(-50%)}
 .lw-play{position:absolute;left:50%;top:72%;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;
 background:radial-gradient(circle at 35% 30%,#7ff0e1,#2fbfae 60%,#1f9e95);box-shadow:0 7px 0 #167a73,0 16px 30px rgba(12,8,48,.4),inset 0 -6px 0 rgba(0,0,0,.08);
 border:6px solid #fffdf7;transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .2s ease-out}
@@ -46,8 +48,9 @@ export type HandMode = "off" | "press" | "hold";
 export interface Ui {
   root: HTMLDivElement;
   say: (text: string | null) => void;
-  /** Place the bubble above a screen point (CSS pixels). */
-  place: (x: number, y: number) => void;
+  /** Place the bubble to the right of a screen point (CSS pixels), tail pointing left at it, so it never lies
+   * over a lantern. "side": centred on y. "low": resting on the bottom edge of the screen, y ignored. */
+  place: (x: number, y: number, mode: "side" | "low") => void;
   play: (on: boolean) => void;
   /** True when the point (client pixels) is on the visible Start button: only a tap there leaves an instruction. */
   playHit: (clientX: number, clientY: number) => boolean;
@@ -83,7 +86,6 @@ export function buildUi(parent: HTMLElement): Ui {
   root.append(layer);
   parent.append(style, root);
 
-  let w = 0;
   // The Start button is hidden (off) after an accepted tap, greyed (wait) while it is visible but not yet enabled. The two
   // never combine: a hidden button must not show as a faded ghost.
   let shown = true;
@@ -101,16 +103,15 @@ export function buildUi(parent: HTMLElement): Ui {
       }
       text.textContent = t;
       bubble.classList.add("on");
-      w = 0;
     },
-    place(x, y) {
-      if (!w) w = bubble.offsetWidth;
+    place(x, y, mode) {
       const vw = root.clientWidth;
-      const half = w / 2;
-      const cx = Math.min(Math.max(x, half + 12), vw - half - 12);
-      anchor.style.transform = `translate(${cx.toFixed(1)}px, ${Math.max(y, 0).toFixed(1)}px)`;
-      const tailX = Math.min(Math.max(x - cx + half, 30), w - 30);
-      tail.style.left = `${tailX.toFixed(1)}px`;
+      const vh = root.clientHeight;
+      const left = Math.max(12, Math.min(x, vw - 160));
+      bubble.style.maxWidth = `${Math.max(140, Math.min(520, vw - left - 14)).toFixed(0)}px`;
+      const half = bubble.offsetHeight / 2;
+      const cy = mode === "low" ? vh - half - 22 : Math.min(y, vh - half - 12);
+      anchor.style.transform = `translate(${left.toFixed(1)}px, ${cy.toFixed(1)}px)`;
     },
     play(on) {
       shown = on;
