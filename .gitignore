@@ -22,4 +22,9 @@ supabase/.branches/
 Thumbs.db
 npm-debug.log*
 
+# agents and design tools
+.agents/
+.codex/
+.impeccable/
+
 backups/
