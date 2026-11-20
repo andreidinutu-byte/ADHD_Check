@@ -65,9 +65,9 @@ const VIEW_DIR = new Vector3(0, 0.12, 1).normalize();
 
 // Luma and the jar stump: front left in landscape; in portrait they stand side by side in front of the tree,
 // nearer the camera, so they fill the lower part of a tall screen and never reach up to a perch.
-const LUMA_LANDSCAPE = new Vector3(-2.75, 0, 2.3);
+const LUMA_LANDSCAPE = new Vector3(-2.6, 0, 2.3);
 const LUMA_PORTRAIT = new Vector3(-0.72, 0, 6.2);
-const JAR_LANDSCAPE = new Vector3(-1.5, 0, 2.85);
+const JAR_LANDSCAPE = new Vector3(-1.38, 0, 2.85);
 const JAR_PORTRAIT = new Vector3(0.78, 0, 6.5);
 
 const CALM_FOG = new Color(0x8e68b4);
@@ -499,7 +499,7 @@ export function createStormWatchScene(parent: HTMLElement, opts: SceneOptions = 
     camera.fov = portrait ? 50 : 38;
     const tanH = Math.tan((camera.fov * Math.PI) / 360);
     // Wide enough for all four perches (and Luma in landscape), tall enough for the tree.
-    const halfW = portrait ? 2.68 : 4.35;
+    const halfW = portrait ? 2.68 : 4.5;
     const halfH = portrait ? 3.6 : 2.95;
     const d = Math.max(7.2, halfW / (tanH * aspect), halfH / tanH);
     camera.aspect = aspect;
