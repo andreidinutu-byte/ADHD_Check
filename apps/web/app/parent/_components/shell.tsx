@@ -19,6 +19,9 @@ export function useParent(): { client: PocketBase; ready: boolean } {
   useEffect(() => {
     let live = true;
     const toLogin = () => router.replace(loginPathFor(window.location.pathname + window.location.search));
+    // Re-read the login cookie into the shared client: Next keeps a visited page mounted in the background, so
+    // after /login this effect runs again without the component (and its useMemo) being created anew.
+    createClient();
     // authRefresh asks PocketBase whether the stored login is still good (and renews it, so an active parent
     // stays logged in); an expired or revoked login is cleared and the parent goes to /login.
     const check = client.authStore.isValid
