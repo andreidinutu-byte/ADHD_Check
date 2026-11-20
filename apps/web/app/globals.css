@@ -177,16 +177,6 @@ h3 {
 
 /* In the components layer so Tailwind utilities (bg-night, p-0) can override. */
 @layer components {
-  /* Clay-style surfaces for light sections */
-  .clay {
-    background: #fff;
-    border: 3px solid var(--cream-2);
-    border-radius: 1.75rem;
-    box-shadow:
-      0 14px 30px -14px rgb(31 27 58 / 0.25),
-      inset 0 -4px 0 0 rgb(31 27 58 / 0.04);
-  }
-
   .btn-glow {
     background: var(--glow);
     color: var(--on-glow);
@@ -236,37 +226,6 @@ h3 {
     background: rgb(255 255 255 / 0.05);
     border: 1px solid rgb(217 207 245 / 0.14);
     border-radius: 1.5rem;
-  }
-
-  /* Editorial components */
-  .btn-editorial-primary {
-    background-color: var(--brand-teal);
-    color: #ffffff;
-    font-weight: 600;
-    transition: background-color 150ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out;
-    box-shadow: 0 1px 3px 0 rgba(15, 110, 102, 0.2);
-  }
-  .btn-editorial-primary:hover {
-    background-color: var(--brand-teal-hover);
-    box-shadow: 0 4px 12px 0 rgba(15, 110, 102, 0.3);
-  }
-  .btn-editorial-primary:active {
-    transform: scale(0.98);
-  }
-
-  .btn-editorial-secondary {
-    background-color: #ffffff;
-    color: var(--ink-primary);
-    border: 1px solid rgba(23, 26, 38, 0.16);
-    font-weight: 600;
-    transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out;
-  }
-  .btn-editorial-secondary:hover {
-    background-color: #F8F5EE;
-    border-color: rgba(23, 26, 38, 0.28);
-  }
-  .btn-editorial-secondary:active {
-    transform: scale(0.98);
   }
 
   .twilight-window {

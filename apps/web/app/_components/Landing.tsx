@@ -108,20 +108,18 @@ function Container({ children, className = "" }: { children: ReactNode; classNam
   return <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
-function Kicker({ children, dark = false }: { children: ReactNode; dark?: boolean }) {
+function Kicker({ children, className = "", dark }: { children: ReactNode; className?: string; dark?: boolean }) {
   return (
-    <p className={`mb-3 text-sm font-bold tracking-wide sm:text-base ${dark ? "text-story-luma" : "text-brand-teal"}`}>
+    <p className={`mb-3 text-sm font-bold tracking-wide text-story-luma sm:text-base ${className}`}>
       {children}
     </p>
   );
 }
 
-function H2({ children, className = "", dark = false }: { children: ReactNode; className?: string; dark?: boolean }) {
+function H2({ children, className = "", dark }: { children: ReactNode; className?: string; dark?: boolean }) {
   return (
     <h2
-      className={`font-storybook text-3xl font-bold leading-tight sm:text-4xl md:text-5xl text-balance ${
-        dark ? "text-story-ink" : "text-ink-primary"
-      } ${className}`}
+      className={`font-storybook text-3xl font-bold leading-tight text-story-ink sm:text-4xl md:text-5xl text-balance ${className}`}
     >
       {children}
     </h2>
@@ -587,26 +585,29 @@ function Game({ t }: { t: Dict }) {
 
 function Result({ t }: { t: Dict }) {
   return (
-    <section id="result" className="relative bg-paper py-20 text-ink-primary md:py-28">
+    <section id="result" className="relative bg-story-night py-20 text-story-ink md:py-28">
       <Container className="grid items-start gap-12 md:grid-cols-2 md:items-center">
         <div className="reveal">
           <Kicker>{t.result.kicker}</Kicker>
           <H2>{t.result.title}</H2>
-          <p className="mt-5 text-lg leading-relaxed text-ink-secondary text-pretty">{t.result.sub}</p>
+          <p className="mt-5 text-lg leading-relaxed text-story-muted text-pretty">{t.result.sub}</p>
         </div>
         <div className="reveal space-y-4">
           {[t.result.a, t.result.b].map((h) => (
-            <div key={h} className="flex items-start gap-4 rounded-2xl border border-line bg-surface p-5 shadow-xs">
-              <Compass className="mt-1 size-5 shrink-0 text-brand-teal" />
-              <p className="font-editorial text-lg font-semibold leading-snug text-ink-primary md:text-xl">{h}</p>
+            <div
+              key={h}
+              className="flex items-start gap-4 rounded-2xl border border-story-line bg-story-surface p-5 shadow-xs transition-colors hover:border-story-line/80"
+            >
+              <Compass className="mt-1 size-5 shrink-0 text-story-luma" />
+              <p className="font-storybook text-lg font-bold leading-snug text-story-ink md:text-xl">{h}</p>
             </div>
           ))}
-          <div className="flex items-start gap-4 rounded-2xl border border-brand-teal/25 bg-brand-teal-soft p-5">
-            <Arrow className="mt-1 size-5 shrink-0 text-brand-teal" />
-            <p className="text-base leading-relaxed text-ink-primary md:text-lg text-pretty">{t.result.next}</p>
+          <div className="flex items-start gap-4 rounded-2xl border border-story-luma/30 bg-story-surface p-5 ring-1 ring-story-luma/20">
+            <Arrow className="mt-1 size-5 shrink-0 text-story-luma" />
+            <p className="text-base leading-relaxed text-story-ink md:text-lg text-pretty">{t.result.next}</p>
           </div>
-          <div className="rounded-xl border border-line bg-paper-2 px-4 py-3 text-sm font-medium text-ink-secondary">
-            <p>{t.result.disclaimer}</p>
+          <div className="rounded-xl border border-story-line bg-story-surface/60 px-4 py-3 text-sm text-story-muted">
+            <p className="text-pretty">{t.result.disclaimer}</p>
           </div>
         </div>
       </Container>
@@ -619,36 +620,39 @@ function Result({ t }: { t: Dict }) {
 function Offer({ t }: { t: Dict }) {
   const { free, paid } = t.offer;
   return (
-    <section id="offer" className="relative border-y border-line bg-paper-2 py-20 text-ink-primary md:py-28">
+    <section id="offer" className="relative border-y border-story-line bg-story-night-alt py-20 text-story-ink md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
           <Kicker>{t.offer.kicker}</Kicker>
           <H2>{t.offer.title}</H2>
         </div>
         <div className="mt-12 grid gap-6 md:grid-cols-2">
-          <article className="reveal flex flex-col justify-between rounded-2xl border border-line bg-surface p-7 shadow-xs">
+          {/* Free Tier */}
+          <article className="reveal flex flex-col justify-between rounded-3xl border border-story-line bg-story-surface p-7 shadow-lg">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-brand-teal">{free.label}</p>
-              <p className="mt-2 font-editorial text-4xl font-semibold tabular-nums text-ink-primary md:text-5xl">{free.price}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-story-muted">{free.label}</p>
+              <p className="mt-2 font-storybook text-4xl font-bold tabular-nums text-story-ink md:text-5xl">{free.price}</p>
               <ul className="mt-6 space-y-3.5">
                 {free.items.map((it) => (
-                  <li key={it} className="flex items-start gap-3 text-base text-ink-primary">
-                    <Check className="mt-1 size-4 shrink-0 text-brand-teal" />
+                  <li key={it} className="flex items-start gap-3 text-base text-story-muted">
+                    <Check className="mt-1 size-4 shrink-0 text-story-luma" />
                     <span>{it}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </article>
-          <article className="reveal flex flex-col justify-between rounded-2xl border-2 border-brand-teal bg-surface p-7 shadow-sm">
+
+          {/* Paid Tier (Featured with warm lantern highlight) */}
+          <article className="reveal relative flex flex-col justify-between rounded-3xl border-2 border-story-lantern bg-story-surface p-7 shadow-xl ring-1 ring-story-lantern/40">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-brand-teal">{paid.label}</p>
-              <p className="mt-2 font-editorial text-4xl font-semibold tabular-nums text-ink-primary md:text-5xl">{paid.price}</p>
-              <p className="mt-1 text-xs font-medium text-ink-secondary">{paid.priceNote}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-story-lantern">{paid.label}</p>
+              <p className="mt-2 font-storybook text-4xl font-bold tabular-nums text-story-lantern md:text-5xl">{paid.price}</p>
+              <p className="mt-1 text-xs font-semibold text-story-muted">{paid.priceNote}</p>
               <ul className="mt-6 space-y-3.5">
                 {paid.items.map((it) => (
-                  <li key={it} className="flex items-start gap-3 text-base text-ink-primary">
-                    <Check className="mt-1 size-4 shrink-0 text-brand-teal" />
+                  <li key={it} className="flex items-start gap-3 text-base text-story-ink">
+                    <Check className="mt-1 size-4 shrink-0 text-story-lantern" />
                     <span>{it}</span>
                   </li>
                 ))}
@@ -657,8 +661,8 @@ function Offer({ t }: { t: Dict }) {
           </article>
         </div>
         <div className="reveal mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="flex items-center gap-3 text-sm font-medium text-ink-secondary">
-            <Shield className="size-5 shrink-0 text-brand-teal" />
+          <p className="flex items-center gap-3 text-sm font-semibold text-story-muted">
+            <Shield className="size-5 shrink-0 text-story-luma" />
             <span>{t.offer.note}</span>
           </p>
           <CtaButton className="w-full sm:w-auto">{t.offer.cta}</CtaButton>
@@ -671,24 +675,54 @@ function Offer({ t }: { t: Dict }) {
 /* ---------- privacy ---------- */
 
 function Privacy({ t }: { t: Dict }) {
+  const [anchor, ...rest] = t.privacy.items;
   return (
-    <section id="privacy" className="relative bg-paper py-20 text-ink-primary md:py-28">
+    <section id="privacy" className="relative bg-story-night py-20 text-story-ink md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
           <Kicker>{t.privacy.kicker}</Kicker>
           <H2>{t.privacy.title}</H2>
         </div>
-        <dl className="mt-12 grid gap-x-12 gap-y-8 md:grid-cols-2 lg:grid-cols-3">
-          {t.privacy.items.map((p) => (
-            <div key={p.title} className="reveal border-t border-line pt-5">
-              <dt className="flex items-center gap-2.5 font-editorial text-lg font-semibold text-ink-primary">
-                <Shield className="size-5 shrink-0 text-brand-teal" />
-                <span>{p.title}</span>
-              </dt>
-              <dd className="mt-2 text-sm leading-relaxed text-ink-secondary text-pretty">{p.body}</dd>
+        <div className="mt-12 grid gap-6 lg:grid-cols-12 items-stretch">
+          {/* Featured Anchor Card (EU Hosting / Core Security) */}
+          {anchor && (
+            <div className="reveal flex flex-col justify-between rounded-3xl border border-story-luma/30 bg-story-surface p-7 shadow-lg lg:col-span-5">
+              <div>
+                <div className="flex items-center gap-3.5">
+                  <Shield className="size-7 shrink-0 text-story-luma" />
+                  <h3 className="font-storybook text-2xl font-bold text-story-ink sm:text-3xl text-balance">
+                    {anchor.title}
+                  </h3>
+                </div>
+                <p className="mt-4 text-base leading-relaxed text-story-muted sm:text-lg text-pretty">
+                  {anchor.body}
+                </p>
+              </div>
             </div>
-          ))}
-        </dl>
+          )}
+
+          {/* 2x2 Balanced Grid for the remaining 4 items (No 3+2 orphan gap) */}
+          <div className="reveal grid gap-4 sm:grid-cols-2 lg:col-span-7">
+            {rest.map((p) => (
+              <div
+                key={p.title}
+                className="flex flex-col justify-between rounded-2xl border border-story-line bg-story-surface/60 p-6 shadow-xs transition-colors hover:border-story-line/80 hover:bg-story-surface"
+              >
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <Shield className="size-4 shrink-0 text-story-luma" />
+                    <h4 className="font-storybook text-lg font-bold text-story-ink text-balance">
+                      {p.title}
+                    </h4>
+                  </div>
+                  <p className="mt-2.5 text-sm leading-relaxed text-story-muted text-pretty">
+                    {p.body}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </Container>
     </section>
   );
@@ -698,20 +732,20 @@ function Privacy({ t }: { t: Dict }) {
 
 function Faq({ t }: { t: Dict }) {
   return (
-    <section id="faq" className="relative border-y border-line bg-paper-2 py-20 text-ink-primary md:py-28">
+    <section id="faq" className="relative border-y border-story-line bg-story-night-alt py-20 text-story-ink md:py-28">
       <Container className="max-w-3xl">
         <div className="reveal">
           <Kicker>{t.faq.kicker}</Kicker>
           <H2>{t.faq.title}</H2>
         </div>
-        <div className="mt-10 divide-y divide-line border-y border-line">
+        <div className="mt-10 divide-y divide-story-line border-y border-story-line">
           {t.faq.items.map((f, i) => (
             <details key={i} className="group [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-editorial text-lg font-semibold text-ink-primary transition-colors hover:text-brand-teal focus-visible:outline-2 focus-visible:outline-brand-teal">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-storybook text-lg font-bold text-story-ink transition-colors hover:text-story-lantern focus-visible:outline-2 focus-visible:outline-story-lantern">
                 <span>{f.q}</span>
-                <Plus className="size-5 shrink-0 text-brand-teal transition-transform duration-200 group-open:rotate-45" />
+                <Plus className="size-5 shrink-0 text-story-luma transition-transform duration-200 group-open:rotate-45" />
               </summary>
-              <p className="pb-6 text-base leading-relaxed text-ink-secondary text-pretty">{f.a}</p>
+              <p className="pb-6 text-base leading-relaxed text-story-muted sm:text-lg text-pretty">{f.a}</p>
             </details>
           ))}
         </div>
@@ -728,7 +762,7 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(email)) {
       setState("invalid");
       return;
     }
@@ -749,19 +783,19 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
     state === "ok" ? t.final.formSuccess : state === "invalid" ? t.final.formError : state === "fail" ? t.final.formFail : null;
 
   return (
-    <section id="start" className="relative overflow-hidden bg-twilight py-20 text-twilight-text md:py-28">
+    <section id="start" className="relative overflow-hidden bg-story-night py-20 text-story-ink md:py-28">
       <Fireflies count={6} />
       <Container className="relative z-10 max-w-3xl text-center">
-        <H2 dark className="md:text-5xl lg:text-6xl text-balance">{t.final.title}</H2>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-twilight-muted text-pretty">{t.final.sub}</p>
+        <H2 className="md:text-5xl lg:text-6xl text-balance">{t.final.title}</H2>
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-story-muted text-pretty">{t.final.sub}</p>
 
         {state === "ok" ? (
-          <p role="status" className="mx-auto mt-10 max-w-xl rounded-2xl border border-white/20 bg-twilight-2 p-5 font-semibold text-twilight-text">
+          <p role="status" className="mx-auto mt-10 max-w-xl rounded-2xl border border-story-luma/40 bg-story-surface p-5 font-bold text-story-ink">
             {msg}
           </p>
         ) : (
           <form onSubmit={submit} noValidate className="mx-auto mt-10 max-w-xl text-left">
-            <label htmlFor="email" className="mb-2 block text-sm font-semibold text-twilight-text">
+            <label htmlFor="email" className="mb-2 block text-sm font-bold text-story-ink">
               {t.final.formLabel}
             </label>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -779,20 +813,30 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
                 placeholder={t.final.formPlaceholder}
                 aria-invalid={state === "invalid"}
                 aria-describedby="email-help email-consent"
-                className="min-h-13 flex-1 rounded-xl border border-white/20 bg-twilight-2 px-5 text-base text-twilight-text placeholder:text-twilight-muted focus:border-lantern-warm focus:outline-none transition-colors"
+                className="min-h-13 flex-1 rounded-xl border border-story-line bg-story-surface px-5 text-base text-story-ink placeholder:text-story-muted focus:border-story-lantern focus:ring-1 focus:ring-story-lantern focus:outline-none transition-colors"
               />
               <button
                 type="submit"
                 disabled={state === "sending"}
-                className="btn-editorial-lantern min-h-13 cursor-pointer rounded-xl px-7 text-base font-semibold whitespace-nowrap shrink-0 bg-lantern-warm text-on-lantern disabled:cursor-wait disabled:opacity-60"
+                className="btn-story-primary min-h-13 cursor-pointer rounded-xl px-7 text-base font-bold whitespace-nowrap shrink-0 disabled:cursor-wait disabled:opacity-60"
               >
                 {state === "sending" ? t.final.sending : t.final.formCta}
               </button>
             </div>
-            <p id="email-help" aria-live="polite" className={`mt-3 text-sm ${msg ? "font-semibold text-lantern-warm" : "text-twilight-muted"}`}>
+            <p
+              id="email-help"
+              aria-live="polite"
+              className={`mt-3 text-sm font-semibold ${
+                msg
+                  ? state === "invalid" || state === "fail"
+                    ? "text-story-lantern"
+                    : "text-story-luma"
+                  : "text-story-muted"
+              }`}
+            >
               {msg ?? t.final.formNote}
             </p>
-            <p id="email-consent" className="mt-3 text-xs leading-relaxed text-twilight-muted/90">
+            <p id="email-consent" className="mt-3 text-xs leading-relaxed text-story-muted/80 text-pretty">
               {t.final.consent}
             </p>
           </form>
@@ -806,24 +850,24 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
 
 function Footer({ t }: { t: Dict }) {
   return (
-    <footer className="border-t border-white/10 bg-twilight-deep pb-28 pt-14 text-sm text-twilight-muted md:pb-14">
+    <footer className="border-t border-story-line bg-story-deep pb-28 pt-14 text-sm text-story-muted md:pb-14">
       <Container className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
         <div className="space-y-4">
-          <Logo dark />
-          <p className="font-semibold text-twilight-text">{t.footer.pilot}</p>
-          <p className="max-w-md leading-relaxed text-twilight-muted text-pretty">
+          <Logo />
+          <p className="font-bold text-story-ink">{t.footer.pilot}</p>
+          <p className="max-w-md leading-relaxed text-story-muted text-pretty">
             {t.footer.disclaimer}
           </p>
         </div>
         <div className="flex flex-col gap-6 md:items-end">
-          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-twilight-muted">
-            <a className="transition-colors hover:text-twilight-text" href="#how">{t.nav.how}</a>
-            <a className="transition-colors hover:text-twilight-text" href="#offer">{t.nav.offer}</a>
-            <a className="transition-colors hover:text-twilight-text" href="#privacy">{t.nav.privacy}</a>
-            <a className="transition-colors hover:text-twilight-text" href="#faq">{t.nav.faq}</a>
-            <a className="transition-colors hover:text-twilight-text" href="/login">{t.nav.login}</a>
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-story-muted">
+            <a className="transition-colors hover:text-story-ink" href="#how">{t.nav.how}</a>
+            <a className="transition-colors hover:text-story-ink" href="#offer">{t.nav.offer}</a>
+            <a className="transition-colors hover:text-story-ink" href="#privacy">{t.nav.privacy}</a>
+            <a className="transition-colors hover:text-story-ink" href="#faq">{t.nav.faq}</a>
+            <a className="transition-colors hover:text-story-ink" href="/login">{t.nav.login}</a>
           </nav>
-          <p className="text-xs text-twilight-muted/90 md:text-right">{t.footer.event}</p>
+          <p className="text-xs text-story-muted/80 md:text-right">{t.footer.event}</p>
         </div>
       </Container>
     </footer>
@@ -852,7 +896,7 @@ function StickyCta({ t }: { t: Dict }) {
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-story-line bg-story-night/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
         show ? "translate-y-0" : "translate-y-full"
       }`}
       aria-hidden={!show}
@@ -860,7 +904,7 @@ function StickyCta({ t }: { t: Dict }) {
       <a
         href="#start"
         tabIndex={show ? 0 : -1}
-        className="btn-editorial-primary flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold shadow-md"
+        className="btn-story-primary flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-bold shadow-lg"
       >
         {t.sticky}
         <Arrow className="size-5" />
