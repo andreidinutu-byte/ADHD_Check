@@ -105,7 +105,13 @@ export function buildUi(parent: HTMLElement): Ui {
       const left = Math.max(12, Math.min(x + 16, vw - 160));
       bubble.style.maxWidth = `${Math.max(140, Math.min(520, vw - left - 14)).toFixed(0)}px`;
       const h = bubble.offsetHeight;
-      const top = Math.min(y, root.clientHeight - h / 2 - 12);
+      let top = Math.min(y, root.clientHeight - h / 2 - 12);
+      // Never on the Start button: when the bubble reaches over it sideways, it stays above it.
+      if (shown) {
+        const r = root.getBoundingClientRect();
+        const p = play.getBoundingClientRect();
+        if (left + bubble.offsetWidth > p.left - r.left - 8) top = Math.min(top, p.top - r.top - h / 2 - 26);
+      }
       anchor.style.transform = `translate(${left.toFixed(1)}px, ${top.toFixed(1)}px)`;
     },
     play(on) {
