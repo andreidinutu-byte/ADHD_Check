@@ -124,7 +124,7 @@ export function buildNight(scene: Scene, grad: DataTexture, outlineMat: MeshBasi
       const a = (k / 3) * Math.PI * 2 + 0.5;
       const l = new Mesh(leg, wood);
       l.scale.y = 0.95;
-      l.rotation.set(Math.sin(a) * 0.36, 0, -Math.cos(a) * 0.36);
+      l.rotation.set(-Math.sin(a) * 0.34, 0, Math.cos(a) * 0.34); // lean in, to meet under the tube
       l.position.set(Math.cos(a) * 0.32, 0, Math.sin(a) * 0.32);
       scope.add(l);
     }
