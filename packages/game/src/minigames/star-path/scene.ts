@@ -26,6 +26,7 @@ import {
   Points,
   PointsMaterial,
   RedFormat,
+  Fog,
   Scene,
   Shape,
   SphereGeometry,
@@ -41,6 +42,7 @@ import { glowTexture } from "../bridge-wait/world";
 import { StarTones } from "./audio";
 import { N_STARS } from "./logic";
 import { pickStar, starLayout } from "./layout";
+import { buildNight } from "./night";
 // TODO: design choice, no source: length of the sound that goes with Luma talking (a sound effect, not a display time).
 const BABBLE_MS = 2000;
 import { StarPathRunner, type Current, type RunState } from "./runner";
@@ -131,30 +133,13 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
   moonLight.position.set(-5, 9, 9);
   scene.add(moonLight);
 
-  // ---- ground: two soft hills ----
-  const sphere = new SphereGeometry(1, 48, 24);
-  const hill = new Mesh(sphere, toon(0x2f6b74));
+  // ---- ground: the star-gazing hill; everything else around the stars is built in night.ts ----
+  scene.fog = new Fog(0x6a4f9e, 22, 78);
+  const sphere = new SphereGeometry(1, 64, 32);
+  const hill = new Mesh(sphere, toon(0x3f9f72));
   hill.scale.setScalar(GROUND_R);
   scene.add(hill);
-  const backHill = new Mesh(sphere, toon(0x264a6e));
-  backHill.scale.set(22, 12, 10);
-  scene.add(backHill);
-
-  // ---- a few round trees on the back hill ----
-  const trees: Group[] = [];
-  const trunkGeo = new CylinderGeometry(0.08, 0.11, 0.7, 10);
-  for (let k = 0; k < 3; k++) {
-    const tree = new Group();
-    const trunk = new Mesh(trunkGeo, toon(0x4a3560));
-    trunk.position.y = 0.35;
-    const crown = new Mesh(sphere, toon(k % 2 ? 0x2c7f7a : 0x3a8f72));
-    crown.scale.set(0.55, 0.62, 0.55);
-    crown.position.y = 0.95;
-    outline(crown, outlineMat, 1.06);
-    tree.add(trunk, crown);
-    scene.add(tree);
-    trees.push(tree);
-  }
+  const night = buildNight(scene, grad, outlineMat, glow);
 
   // ---- background dots: tiny, dim, static, far away ----
   const dotPos: number[] = [];
@@ -167,7 +152,7 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
   dotGeo.setAttribute("position", new Float32BufferAttribute(dotPos, 3));
   const dots = new Points(
     dotGeo,
-    new PointsMaterial({ size: 0.18, map: glow, color: 0xcfd6ff, transparent: true, opacity: 0.35, depthWrite: false }),
+    new PointsMaterial({ size: 0.18, map: glow, color: 0xcfd6ff, transparent: true, opacity: 0.35, depthWrite: false, fog: false }),
   );
   scene.add(dots);
 
@@ -186,7 +171,7 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
     const mat = new MeshToonMaterial({ color: STAR_OFF.clone(), gradientMap: grad });
     const body = new Mesh(starGeo, mat);
     outline(body, outlineMat, 1.1);
-    const haloMat = new SpriteMaterial({ map: glow, color: 0xffe9a0, transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending });
+    const haloMat = new SpriteMaterial({ map: glow, color: 0xffe9a0, transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending, fog: false });
     const halo = new Sprite(haloMat);
     halo.scale.setScalar(2.6);
     halo.position.z = -0.1;
@@ -216,6 +201,7 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
   let viewH = 1;
   let starWorldR = 0.5;
   const lumaPos = new Vector3();
+  let lumaScale = 1;
   const groundTop = (x: number, top: number) => top - (GROUND_R - Math.sqrt(GROUND_R * GROUND_R - x * x));
   const fit = () => {
     const w = Math.max(1, ui.root.clientWidth);
@@ -236,14 +222,11 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
     const bottom = CAMERA_Y - hh;
     const top = bottom + hh * (portrait ? 0.42 : 0.5);
     hill.position.set(0, top - GROUND_R, 0);
-    backHill.position.set(hw * 0.55, top - 12 + 1.0, -9);
-    const treeX = [hw * 0.42, hw * 0.78, -hw * 0.7];
-    // Trees stay low on the back hill, below the star field.
-    trees.forEach((t, k) => t.position.set(treeX[k] as number, top - 0.35 + (k === 1 ? 0.2 : 0), -6));
-
     // Luma at the front left of the hill, looking up at the sky.
-    const lx = -hw + Math.max(1.1, hw * 0.24);
+    const lx = -hw + Math.max(1.1, hw * 0.24) + (portrait ? 0.2 : 0.55); // a bigger Luma needs a little more room
     lumaPos.set(lx, groundTop(lx, top), 1.2);
+    lumaScale = portrait ? 1.12 : 1.25;
+    night.layout({ hw, hh, top, portrait, cameraY: CAMERA_Y, cameraZ: CAMERA_Z, groundR: GROUND_R, luma: lumaPos, lumaScale });
 
     // Star field: the sky above the hill, clear of the edges and of Luma's head.
     const x0 = -hw + 0.9;
@@ -273,6 +256,14 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
     const e = toScreen((stars[0]?.group.position ?? new Vector3()).clone().add(new Vector3(starWorldR, 0, 0)));
     return Math.max(MIN_HIT_PX, Math.hypot(e.x - c.x, e.y - c.y) * 1.5);
   };
+  // For end-to-end checks: star centres and the hit radius in CSS px. The redesign must not move them.
+  const publishStars = () => {
+    const r = hitRadius();
+    parent.dataset.stars = starScreen().map((p) => `${p.x.toFixed(0)},${p.y.toFixed(0)},${r.toFixed(0)}`).join(";");
+  };
+  publishStars();
+  const roStars = new ResizeObserver(publishStars);
+  roStars.observe(ui.root);
 
   // ---- animation state (visual only, never used for measurement) ----
   let mode: LumaMode = "idle";
@@ -346,11 +337,13 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
         // Inside runner.frame(ts): drawn by the render call of this same callback.
         const s = stars[star];
         if (s) s.shown = true;
+        parent.dataset.lit = String(star);
         tones.note(pos);
       },
       onStarOff: (_ts, star) => {
         const s = stars[star];
         if (s) s.shown = false;
+        parent.dataset.lit = "";
       },
       onRecallStar: (_tapMs, _star, pos) => {
         tones.note(pos);
@@ -449,6 +442,7 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
     luma.root.position.set(lumaPos.x, lumaPos.y + lift, lumaPos.z);
     luma.root.rotation.y = 0.45;
     luma.root.rotation.x = -lookUp;
+    luma.root.scale.setScalar(lumaScale);
     luma.squash.scale.set(sx, sy, sx);
     (luma.arms[0] as Group).rotation.z = -armL;
     (luma.arms[1] as Group).rotation.z = armR;
@@ -464,8 +458,9 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
     for (const e of luma.eyes) e.scale.y = eyeY;
     const sh = 1 - Math.min(lift, 0.6) * 0.6;
     shadow.position.set(lumaPos.x, lumaPos.y + 0.02, lumaPos.z + 0.1);
-    shadow.scale.set(1.5 * sh, 0.35 * sh, 1);
-    head.set(lumaPos.x, lumaPos.y + lift + 1.65, lumaPos.z);
+    shadow.scale.set(1.5 * sh * lumaScale, 0.35 * sh * lumaScale, 1);
+    // The bubble sits beside Luma, at chest height: under the star field whatever Luma's size.
+    head.set(lumaPos.x + 0.78 * lumaScale, lumaPos.y + 0.8 * lumaScale, lumaPos.z);
   };
 
   const frame = (ts: number) => {
@@ -510,7 +505,7 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
     fireworks.update(dt);
 
     const h = toScreen(head);
-    ui.place(h.x, h.y - 8);
+    ui.place(h.x, h.y);
     renderer.render(scene, camera);
   };
   raf = requestAnimationFrame(frame);
@@ -520,6 +515,7 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
       destroyed = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
+      roStars.disconnect();
       ui.root.removeEventListener("pointerdown", onDown);
       ui.root.removeEventListener("contextmenu", noMenu);
       canvas.removeEventListener("webglcontextlost", onLost);
@@ -542,6 +538,8 @@ export function createStarPathScene(parent: HTMLElement, opts: SceneOptions): { 
       ui.destroy();
       delete parent.dataset.phase;
       delete parent.dataset.practice;
+      delete parent.dataset.stars;
+      delete parent.dataset.lit;
     },
   };
 }

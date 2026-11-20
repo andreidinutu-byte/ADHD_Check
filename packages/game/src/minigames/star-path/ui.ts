@@ -4,16 +4,17 @@ import { insideRect } from "../../pointer";
 // (pointer-events: none); the game container itself takes every pointerdown.
 const CSS = `
 .sp-root{position:relative;width:100%;height:100%;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
-background:linear-gradient(180deg,#070b2b 0%,#141c55 38%,#2a2f78 66%,#3d3a86 100%)}
+background:linear-gradient(180deg,#070b2b 0%,#121953 30%,#25277a 50%,#463a94 57%,#8f589d 64%,#e39a86 71%,#e39a86 100%)}
+@media (orientation: portrait){.sp-root{background:linear-gradient(180deg,#070b2b 0%,#121953 34%,#25277a 57%,#463a94 63%,#8f589d 69%,#e39a86 75%,#e39a86 100%)}}
 .sp-root>canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .sp-ui{position:absolute;inset:0;pointer-events:none;font-family:ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Nunito","Varela Round",system-ui,sans-serif}
 .sp-anchor{position:absolute;left:0;top:0;will-change:transform}
-.sp-bubble{position:relative;transform:translate(-50%,-100%) scale(.6);transform-origin:50% 100%;opacity:0;
+.sp-bubble{position:relative;transform:translate(0,-50%) scale(.6);transform-origin:0 50%;opacity:0;
 width:max-content;max-width:min(84vw,520px);box-sizing:border-box;padding:16px 24px;border-radius:26px;
 background:#fffdf7;color:#2a1f5c;font-size:clamp(19px,2.9vw,28px);line-height:1.28;font-weight:800;text-align:center;
 box-shadow:0 5px 0 #d9cff5,0 14px 30px rgba(4,4,30,.5);transition:opacity .16s ease-out,transform .3s cubic-bezier(.16,1,.3,1)}
-.sp-bubble.on{opacity:1;transform:translate(-50%,-100%) scale(1)}
-.sp-tail{position:absolute;bottom:-15px;width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:17px solid #fffdf7;transform:translateX(-50%)}
+.sp-bubble.on{opacity:1;transform:translate(0,-50%) scale(1)}
+.sp-tail{position:absolute;left:-15px;top:50%;width:0;height:0;border-top:13px solid transparent;border-bottom:13px solid transparent;border-right:17px solid #fffdf7;transform:translateY(-50%)}
 .sp-play{position:absolute;right:28px;bottom:28px;width:128px;height:128px;border-radius:50%;
 background:radial-gradient(circle at 35% 30%,#7ff0e1,#2fbfae 60%,#1f9e95);box-shadow:0 7px 0 #167a73,0 16px 30px rgba(4,4,30,.5),inset 0 -6px 0 rgba(0,0,0,.08);
 border:6px solid #fffdf7;transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .2s ease-out}
@@ -43,7 +44,7 @@ const HAND_SVG = `<svg viewBox="0 0 96 118" width="96" height="118" aria-hidden=
 export interface Ui {
   root: HTMLDivElement;
   say: (text: string | null) => void;
-  /** Place the bubble above a screen point (CSS pixels). */
+  /** Place the bubble to the right of a screen point (CSS pixels), its tail pointing left at it. */
   place: (x: number, y: number) => void;
   play: (on: boolean) => void;
   /** True when the point (client pixels) is on the visible Start button: only a tap there leaves an instruction. */
@@ -80,7 +81,6 @@ export function buildUi(parent: HTMLElement): Ui {
   root.append(layer);
   parent.append(style, root);
 
-  let w = 0;
   // The Start button is hidden (off) after an accepted tap, greyed (wait) while it is visible but not yet enabled. The two
   // never combine: a hidden button must not show as a faded ghost.
   let shown = true;
@@ -98,17 +98,15 @@ export function buildUi(parent: HTMLElement): Ui {
       }
       text.textContent = t;
       bubble.classList.add("on");
-      w = 0;
     },
     place(x, y) {
-      // Keep the bubble on screen; the tail still points at Luma.
-      if (!w) w = bubble.offsetWidth;
+      // To the right of Luma, never wider than the room left on screen; the tail points back at Luma.
       const vw = root.clientWidth;
-      const half = w / 2;
-      const cx = Math.min(Math.max(x, half + 12), vw - half - 12);
-      anchor.style.transform = `translate(${cx.toFixed(1)}px, ${Math.max(y, 0).toFixed(1)}px)`;
-      const tailX = Math.min(Math.max(x - cx + half, 30), w - 30);
-      tail.style.left = `${tailX.toFixed(1)}px`;
+      const left = Math.max(12, Math.min(x + 16, vw - 160));
+      bubble.style.maxWidth = `${Math.max(140, Math.min(520, vw - left - 14)).toFixed(0)}px`;
+      const h = bubble.offsetHeight;
+      const top = Math.min(y, root.clientHeight - h / 2 - 12);
+      anchor.style.transform = `translate(${left.toFixed(1)}px, ${top.toFixed(1)}px)`;
     },
     play(on) {
       shown = on;
