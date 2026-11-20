@@ -61,7 +61,7 @@ export function Landing() {
       </a>
       <Header t={t} lang={lang} setLang={writeLang} />
       <main id="main">
-        <Hero t={t} />
+        <Hero t={t} lang={lang} />
         <Problem t={t} />
         <How t={t} />
         <Game t={t} />
@@ -235,7 +235,16 @@ function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) 
 
 /* ---------- hero ---------- */
 
-function Hero({ t }: { t: Dict }) {
+function Hero({ t, lang }: { t: Dict; lang: Lang }) {
+  // The showcase film autoplays muted; with reduced motion it waits for the play button instead.
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) v.pause();
+    else v.play().catch(() => {});
+  }, [lang]);
+
   return (
     <section id="hero" className="relative overflow-hidden bg-story-night pb-16 pt-8 sm:pt-14 md:pb-24">
       <Fireflies prominent count={10} />
@@ -276,29 +285,34 @@ function Hero({ t }: { t: Dict }) {
 
         <div className="relative mx-auto mt-12 max-w-5xl overflow-hidden rounded-[2rem] border border-story-line bg-story-surface p-5 shadow-2xl sm:p-7 md:mt-16 md:p-9 lg:p-11">
           <div className="relative mx-auto w-full md:max-w-[88%] lg:max-w-[86%]">
-            {/* Tablet Landscape - visible from md upwards */}
-            <div className="relative hidden overflow-hidden rounded-[1.75rem] border-[6px] border-story-night-alt shadow-2xl md:block md:w-[78%] lg:w-[80%]">
-              <Image
-                src="/landing/storm-watch-play.jpg"
-                alt=""
-                width={2400}
-                height={1600}
-                sizes="(min-width: 768px) 55vw, 0px"
-                className="block h-auto w-full object-cover"
-                priority
+            {/* Showcase film in the tablet frame, in the page's language */}
+            <div className="relative overflow-hidden rounded-[1.25rem] border-[6px] border-story-night-alt bg-story-night shadow-2xl md:w-[76%] md:rounded-[1.75rem]">
+              <video
+                key={lang}
+                ref={videoRef}
+                className="block aspect-video h-auto w-full"
+                src={`/landing/video/adhdcheck-${lang}.mp4`}
+                poster={`/landing/video/adhdcheck-${lang}.jpg`}
+                aria-label={t.hero.imgAlt}
+                width={1280}
+                height={720}
+                muted
+                loop
+                playsInline
+                controls
+                preload="metadata"
               />
             </div>
 
-            {/* Phone Portrait - centered on mobile, positioned bottom-right on tablet/desktop */}
-            <div className="relative mx-auto w-[68%] max-w-[240px] overflow-hidden rounded-[2.2rem] border-[6px] border-story-night-alt shadow-2xl md:absolute md:bottom-2 md:right-0 lg:bottom-4 md:w-[26%] lg:w-[25%]">
+            {/* Phone Portrait - beside the film from tablet upwards, clear of its controls; phones show the film alone */}
+            <div className="relative hidden overflow-hidden rounded-[2.2rem] border-[6px] border-story-night-alt shadow-2xl md:absolute md:right-0 md:top-1/2 md:block md:w-[21%] md:-translate-y-1/2">
               <Image
                 src="/landing/storm-watch-portrait.jpg"
                 alt={t.hero.imgAlt}
                 width={860}
                 height={1640}
-                sizes="(min-width: 768px) 25vw, 68vw"
+                sizes="(min-width: 768px) 25vw, 0px"
                 className="block h-auto w-full object-cover"
-                priority
               />
             </div>
           </div>
