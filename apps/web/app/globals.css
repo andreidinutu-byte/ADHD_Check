@@ -233,6 +233,21 @@ h3 {
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--twilight-text);
   }
+
+  .btn-editorial-lantern {
+    background-color: var(--lantern-warm);
+    color: var(--on-lantern);
+    font-weight: 600;
+    transition: background-color 150ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+  }
+  .btn-editorial-lantern:hover {
+    background-color: #ffd47f;
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.25);
+  }
+  .btn-editorial-lantern:active {
+    transform: scale(0.98);
+  }
 }
 
 /* Fireflies */

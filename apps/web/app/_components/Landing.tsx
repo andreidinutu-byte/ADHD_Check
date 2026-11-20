@@ -65,14 +65,11 @@ export function Landing() {
         <Problem t={t} />
         <How t={t} />
         <Game t={t} />
-        {/* Temporary wrapper for Result through Final to preserve dark contrast */}
-        <div className="bg-dusk-deep text-moon">
-          <Result t={t} />
-          <Offer t={t} />
-          <Privacy t={t} />
-          <Faq t={t} />
-          <Final t={t} lang={lang} />
-        </div>
+        <Result t={t} />
+        <Offer t={t} />
+        <Privacy t={t} />
+        <Faq t={t} />
+        <Final t={t} lang={lang} />
       </main>
       <Footer t={t} />
       <StickyCta t={t} />
@@ -348,7 +345,7 @@ function Problem({ t }: { t: Dict }) {
           {t.problem.items.map((item, i) => (
             <li
               key={i}
-              className="reveal border-t border-line pt-5 text-lg leading-relaxed text-ink-primary"
+              className="reveal border-t border-line pt-5 text-lg leading-relaxed text-ink-primary text-pretty"
             >
               “{item}”
             </li>
@@ -428,8 +425,8 @@ function How({ t }: { t: Dict }) {
                 sizes="(min-width: 1024px) 24rem, 90vw"
                 className="block aspect-[4/3] h-auto w-full object-cover object-[50%_40%]"
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-twilight/65 p-5">
-                <p className="rounded-xl border border-line bg-paper px-5 py-4 text-center font-editorial text-lg font-semibold leading-snug text-ink-primary shadow-lg">
+              <div className="absolute inset-x-0 bottom-0 border-t border-line bg-paper/95 px-5 py-4 text-center backdrop-blur-xs">
+                <p className="font-editorial text-base font-semibold leading-snug text-ink-primary md:text-lg">
                   {t.how.handback}
                 </p>
               </div>
@@ -503,25 +500,27 @@ function Game({ t }: { t: Dict }) {
 
 function Result({ t }: { t: Dict }) {
   return (
-    <section className="bg-dusk py-20 md:py-28">
-      <Container className="grid items-center gap-10 md:grid-cols-2">
+    <section id="result" className="relative bg-paper py-20 text-ink-primary md:py-28">
+      <Container className="grid items-start gap-12 md:grid-cols-2 md:items-center">
         <div className="reveal">
-          <Kicker dark>{t.result.kicker}</Kicker>
-          <H2 dark>{t.result.title}</H2>
-          <p className="mt-5 text-lg text-lavender">{t.result.sub}</p>
+          <Kicker>{t.result.kicker}</Kicker>
+          <H2>{t.result.title}</H2>
+          <p className="mt-5 text-lg leading-relaxed text-ink-secondary text-pretty">{t.result.sub}</p>
         </div>
-        <div className="reveal space-y-3">
+        <div className="reveal space-y-4">
           {[t.result.a, t.result.b].map((h) => (
-            <p key={h} className="dusk-surface flex items-start gap-3 p-5 font-display text-xl font-semibold leading-snug">
-              <Compass className="mt-1 size-5 shrink-0 text-river-soft" />
-              {h}
-            </p>
+            <div key={h} className="flex items-start gap-4 rounded-2xl border border-line bg-surface p-5 shadow-xs">
+              <Compass className="mt-1 size-5 shrink-0 text-brand-teal" />
+              <p className="font-editorial text-lg font-semibold leading-snug text-ink-primary md:text-xl">{h}</p>
+            </div>
           ))}
-          <p className="flex items-start gap-3 rounded-2xl border border-lantern/40 bg-lantern/10 p-5 text-lg leading-relaxed text-moon">
-            <Arrow className="mt-1 size-5 shrink-0 text-lantern" />
-            {t.result.next}
-          </p>
-          <p className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-moon">{t.result.disclaimer}</p>
+          <div className="flex items-start gap-4 rounded-2xl border border-brand-teal/25 bg-brand-teal-soft p-5">
+            <Arrow className="mt-1 size-5 shrink-0 text-brand-teal" />
+            <p className="text-base leading-relaxed text-ink-primary md:text-lg text-pretty">{t.result.next}</p>
+          </div>
+          <div className="rounded-xl border border-line bg-paper-2 px-4 py-3 text-sm font-medium text-ink-secondary">
+            <p>{t.result.disclaimer}</p>
+          </div>
         </div>
       </Container>
     </section>
@@ -533,43 +532,47 @@ function Result({ t }: { t: Dict }) {
 function Offer({ t }: { t: Dict }) {
   const { free, paid } = t.offer;
   return (
-    <section id="offer" className="bg-dusk-deep py-20 md:py-28">
+    <section id="offer" className="relative border-y border-line bg-paper-2 py-20 text-ink-primary md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
-          <Kicker dark>{t.offer.kicker}</Kicker>
-          <H2 dark>{t.offer.title}</H2>
+          <Kicker>{t.offer.kicker}</Kicker>
+          <H2>{t.offer.title}</H2>
         </div>
-        <div className="mt-12 grid gap-5 md:grid-cols-2">
-          <article className="reveal dusk-surface flex flex-col p-7">
-            <h3 className="font-display text-xl font-semibold text-river-soft">{free.label}</h3>
-            <p className="mt-2 font-display text-5xl font-bold">{free.price}</p>
-            <ul className="mt-6 space-y-3">
-              {free.items.map((it) => (
-                <li key={it} className="flex gap-3 text-lg text-moon">
-                  <Check className="mt-1 size-5 shrink-0 text-river-soft" />
-                  {it}
-                </li>
-              ))}
-            </ul>
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
+          <article className="reveal flex flex-col justify-between rounded-2xl border border-line bg-surface p-7 shadow-xs">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-teal">{free.label}</p>
+              <p className="mt-2 font-editorial text-4xl font-semibold tabular-nums text-ink-primary md:text-5xl">{free.price}</p>
+              <ul className="mt-6 space-y-3.5">
+                {free.items.map((it) => (
+                  <li key={it} className="flex items-start gap-3 text-base text-ink-primary">
+                    <Check className="mt-1 size-4 shrink-0 text-brand-teal" />
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </article>
-          <article className="reveal flex flex-col rounded-3xl border-2 border-lantern/60 bg-dusk-2 p-7">
-            <h3 className="font-display text-xl font-semibold text-lantern">{paid.label}</h3>
-            <p className="mt-2 font-display text-5xl font-bold">{paid.price}</p>
-            <p className="mt-1 font-semibold text-lavender">{paid.priceNote}</p>
-            <ul className="mt-6 space-y-3">
-              {paid.items.map((it) => (
-                <li key={it} className="flex gap-3 text-lg text-moon">
-                  <Check className="mt-1 size-5 shrink-0 text-lantern" />
-                  {it}
-                </li>
-              ))}
-            </ul>
+          <article className="reveal flex flex-col justify-between rounded-2xl border-2 border-brand-teal bg-surface p-7 shadow-sm">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-teal">{paid.label}</p>
+              <p className="mt-2 font-editorial text-4xl font-semibold tabular-nums text-ink-primary md:text-5xl">{paid.price}</p>
+              <p className="mt-1 text-xs font-medium text-ink-secondary">{paid.priceNote}</p>
+              <ul className="mt-6 space-y-3.5">
+                {paid.items.map((it) => (
+                  <li key={it} className="flex items-start gap-3 text-base text-ink-primary">
+                    <Check className="mt-1 size-4 shrink-0 text-brand-teal" />
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </article>
         </div>
-        <div className="reveal mt-8 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="flex items-start gap-3 text-lavender">
-            <Shield className="mt-0.5 size-6 shrink-0 text-river-soft" />
-            {t.offer.note}
+        <div className="reveal mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-center gap-3 text-sm font-medium text-ink-secondary">
+            <Shield className="size-5 shrink-0 text-brand-teal" />
+            <span>{t.offer.note}</span>
           </p>
           <CtaButton className="w-full sm:w-auto">{t.offer.cta}</CtaButton>
         </div>
@@ -582,20 +585,20 @@ function Offer({ t }: { t: Dict }) {
 
 function Privacy({ t }: { t: Dict }) {
   return (
-    <section id="privacy" className="bg-dusk py-20 md:py-28">
+    <section id="privacy" className="relative bg-paper py-20 text-ink-primary md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
-          <Kicker dark>{t.privacy.kicker}</Kicker>
-          <H2 dark>{t.privacy.title}</H2>
+          <Kicker>{t.privacy.kicker}</Kicker>
+          <H2>{t.privacy.title}</H2>
         </div>
-        <dl className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2 lg:grid-cols-3">
+        <dl className="mt-12 grid gap-x-12 gap-y-8 md:grid-cols-2 lg:grid-cols-3">
           {t.privacy.items.map((p) => (
-            <div key={p.title} className="reveal border-t border-lavender/15 pt-5">
-              <dt className="flex items-center gap-2 font-display text-xl font-semibold">
-                <Shield className="size-5 shrink-0 text-river-soft" />
-                {p.title}
+            <div key={p.title} className="reveal border-t border-line pt-5">
+              <dt className="flex items-center gap-2.5 font-editorial text-lg font-semibold text-ink-primary">
+                <Shield className="size-5 shrink-0 text-brand-teal" />
+                <span>{p.title}</span>
               </dt>
-              <dd className="mt-2 leading-relaxed text-lavender">{p.body}</dd>
+              <dd className="mt-2 text-sm leading-relaxed text-ink-secondary text-pretty">{p.body}</dd>
             </div>
           ))}
         </dl>
@@ -608,20 +611,20 @@ function Privacy({ t }: { t: Dict }) {
 
 function Faq({ t }: { t: Dict }) {
   return (
-    <section id="faq" className="bg-dusk-deep py-20 md:py-28">
+    <section id="faq" className="relative border-y border-line bg-paper-2 py-20 text-ink-primary md:py-28">
       <Container className="max-w-3xl">
         <div className="reveal">
-          <Kicker dark>{t.faq.kicker}</Kicker>
-          <H2 dark>{t.faq.title}</H2>
+          <Kicker>{t.faq.kicker}</Kicker>
+          <H2>{t.faq.title}</H2>
         </div>
-        <div className="mt-10 divide-y divide-lavender/15 border-y border-lavender/15">
+        <div className="mt-10 divide-y divide-line border-y border-line">
           {t.faq.items.map((f, i) => (
             <details key={i} className="group [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-display text-lg font-semibold">
-                {f.q}
-                <Plus className="size-5 shrink-0 text-river-soft transition-transform group-open:rotate-45" />
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-editorial text-lg font-semibold text-ink-primary transition-colors hover:text-brand-teal focus-visible:outline-2 focus-visible:outline-brand-teal">
+                <span>{f.q}</span>
+                <Plus className="size-5 shrink-0 text-brand-teal transition-transform duration-200 group-open:rotate-45" />
               </summary>
-              <p className="pb-6 leading-relaxed text-lavender">{f.a}</p>
+              <p className="pb-6 text-base leading-relaxed text-ink-secondary text-pretty">{f.a}</p>
             </details>
           ))}
         </div>
@@ -659,20 +662,19 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
     state === "ok" ? t.final.formSuccess : state === "invalid" ? t.final.formError : state === "fail" ? t.final.formFail : null;
 
   return (
-    <section id="start" className="relative overflow-hidden bg-dusk py-20 md:py-28">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,#3a2d7a_0%,transparent_65%)]" aria-hidden="true" />
-      <Fireflies />
+    <section id="start" className="relative overflow-hidden bg-twilight py-20 text-twilight-text md:py-28">
+      <Fireflies count={6} />
       <Container className="relative max-w-3xl text-center">
-        <H2 dark className="md:text-6xl">{t.final.title}</H2>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-lavender">{t.final.sub}</p>
+        <H2 dark className="md:text-5xl lg:text-6xl text-balance">{t.final.title}</H2>
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-twilight-muted text-pretty">{t.final.sub}</p>
 
         {state === "ok" ? (
-          <p role="status" className="mx-auto mt-10 max-w-xl rounded-2xl border border-river/50 bg-river/10 p-5 font-semibold">
+          <p role="status" className="mx-auto mt-10 max-w-xl rounded-2xl border border-white/20 bg-twilight-2 p-5 font-semibold text-twilight-text">
             {msg}
           </p>
         ) : (
           <form onSubmit={submit} noValidate className="mx-auto mt-10 max-w-xl text-left">
-            <label htmlFor="email" className="mb-2 block text-sm font-bold">
+            <label htmlFor="email" className="mb-2 block text-sm font-semibold text-twilight-text">
               {t.final.formLabel}
             </label>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -690,20 +692,20 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
                 placeholder={t.final.formPlaceholder}
                 aria-invalid={state === "invalid"}
                 aria-describedby="email-help email-consent"
-                className="min-h-13 flex-1 rounded-2xl border-2 border-white/25 bg-white/10 px-5 text-base text-moon placeholder:text-lavender-muted focus:border-lantern focus:outline-none"
+                className="min-h-13 flex-1 rounded-xl border border-white/20 bg-twilight-2 px-5 text-base text-twilight-text placeholder:text-twilight-muted focus:border-lantern-warm focus:outline-none transition-colors"
               />
               <button
                 type="submit"
                 disabled={state === "sending"}
-                className="btn-lantern min-h-13 cursor-pointer rounded-2xl px-7 font-display text-lg font-semibold disabled:cursor-wait disabled:opacity-60"
+                className="btn-editorial-lantern min-h-13 cursor-pointer rounded-xl px-7 text-base font-semibold disabled:cursor-wait disabled:opacity-60"
               >
                 {state === "sending" ? t.final.sending : t.final.formCta}
               </button>
             </div>
-            <p id="email-help" aria-live="polite" className={`mt-3 text-sm ${msg ? "font-semibold text-[#fda4af]" : "text-lavender"}`}>
+            <p id="email-help" aria-live="polite" className={`mt-3 text-sm ${msg ? "font-semibold text-lantern-warm" : "text-twilight-muted"}`}>
               {msg ?? t.final.formNote}
             </p>
-            <p id="email-consent" className="mt-3 text-sm leading-relaxed text-lavender-muted">
+            <p id="email-consent" className="mt-3 text-xs leading-relaxed text-twilight-muted/90">
               {t.final.consent}
             </p>
           </form>
@@ -717,12 +719,12 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
 
 function Footer({ t }: { t: Dict }) {
   return (
-    <footer className="bg-[#0b0820] pb-28 pt-12 text-sm text-lavender md:pb-12">
+    <footer className="border-t border-white/10 bg-twilight pb-28 pt-12 text-sm text-twilight-muted md:pb-12">
       <Container className="space-y-4">
         <Logo dark />
-        <p className="font-semibold text-moon">{t.footer.pilot}</p>
-        <p className="max-w-3xl leading-relaxed">{t.footer.disclaimer}</p>
-        <p>{t.footer.event}</p>
+        <p className="font-semibold text-twilight-text">{t.footer.pilot}</p>
+        <p className="max-w-md leading-relaxed text-twilight-muted text-pretty">{t.footer.disclaimer}</p>
+        <p className="text-xs text-twilight-muted/80">{t.footer.event}</p>
       </Container>
     </footer>
   );
@@ -750,7 +752,7 @@ function StickyCta({ t }: { t: Dict }) {
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-dusk-deep/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
         show ? "translate-y-0" : "translate-y-full"
       }`}
       aria-hidden={!show}
@@ -758,7 +760,7 @@ function StickyCta({ t }: { t: Dict }) {
       <a
         href="#start"
         tabIndex={show ? 0 : -1}
-        className="btn-lantern flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-display text-lg font-semibold"
+        className="btn-editorial-primary flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold shadow-md"
       >
         {t.sticky}
         <Arrow className="size-5" />

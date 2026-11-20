@@ -55,6 +55,11 @@ components:
     textColor: "{colors.ink-primary}"
     rounded: "{rounded.md}"
     padding: "12px 24px"
+  button-editorial-lantern:
+    backgroundColor: "{colors.lantern-warm}"
+    textColor: "#1f1400"
+    rounded: "{rounded.md}"
+    padding: "12px 24px"
 ---
 
 # Design System · ADHDCheck
@@ -95,9 +100,10 @@ The visual system adopts a hybrid concept:
 * **Radii:** `rounded-xl` (12px) for buttons, `rounded-2xl` (16px) for cards, `rounded-[2rem]` (32px) for twilight showcase windows.
 
 ## 5. Component Patterns
-* **Primary Button:** `.btn-editorial-primary` (`#0F6E66` background, white text, subtle elevation, 200ms ease-out, no 3D inset toy shadows).
+* **Primary Button:** `.btn-editorial-primary` (`#0F6E66` background, white text, subtle elevation, 150ms ease-out, no 3D inset toy shadows).
 * **Secondary Button:** `.btn-editorial-secondary` (white background, 1px border `#171A26/16`, text `#171A26`, hover `#F8F5EE`).
-* **Twilight Window:** `.twilight-window` (dark navy container, subtle top radial gradient `#233063 -> transparent`, 1px border).
+* **Lantern Button:** `.btn-editorial-lantern` (`#F5B841` background, `#1f1400` text, neutral subtle elevation, 150ms ease-out, no 3D inset toy shadows or chromatic glow).
+* **Twilight Window:** `.twilight-window` (dark navy container, subtle top linear gradient `#1C264D -> #131A36`, 1px border).
 
 ## 6. Anti-Patterns & Craft Floor (Impeccable Strict Rules)
 * **Zero Dark Glows:** No saturated yellow or cyan halos on dark cards.
