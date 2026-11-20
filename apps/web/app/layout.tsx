@@ -1,6 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Nunito } from "next/font/google";
+import { Fraunces, Fredoka, Nunito, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+
+const fraunces = Fraunces({
+  variable: "--font-editorial",
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-body",
+  subsets: ["latin", "latin-ext"],
+});
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -26,14 +37,18 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b1430",
+  themeColor: "#FAF7F2",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // suppressHydrationWarning applies to this element's own attributes only ("only works one level deep",
     // react.dev hydrateRoot): browser extensions add attributes to <html> before React hydrates.
-    <html lang="ro" className={`${fredoka.variable} ${nunito.variable} antialiased`} suppressHydrationWarning>
+    <html
+      lang="ro"
+      className={`${fredoka.variable} ${nunito.variable} ${fraunces.variable} ${plusJakartaSans.variable} antialiased`}
+      suppressHydrationWarning
+    >
       <body className="min-h-dvh">{children}</body>
     </html>
   );
