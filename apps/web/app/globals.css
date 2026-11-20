@@ -29,6 +29,39 @@
   --on-lantern: #2a1a00;
   --lavender: #d9cff5;
   --lavender-muted: #c3b8ea;
+
+  /* Warm Clinical Editorial + Twilight Windows design system */
+  --paper: #FAF7F2;
+  --paper-2: #F2ECE1;
+  --surface: #FFFFFF;
+  --ink-primary: #171A26;
+  --ink-secondary: #4D5368;
+  --ink-tertiary: #6E748A;
+  --line: rgba(23, 26, 38, 0.10);
+  --brand-teal: #0F6E66;
+  --brand-teal-hover: #0B5750;
+  --brand-teal-soft: #E5F4F2;
+  --twilight: #131A36;
+  --twilight-2: #1C264D;
+  --twilight-deep: #0D1226;
+  --twilight-text: #F2F5FF;
+  --twilight-muted: #B6C0DF;
+  --lantern-warm: #F5B841;
+
+  /* Warm Nocturnal Storybook design system values */
+  --story-night: #0B1120;
+  --story-night-alt: #111A30;
+  --story-surface: #172340;
+  --story-surface-hover: #1E2D52;
+  --story-deep: #070B14;
+  --story-ink: #F7F3E8;
+  --story-muted: #B4C2DF;
+  --story-line: rgba(247, 243, 232, 0.12);
+  --story-lantern: #F5B841;
+  --story-lantern-hover: #FFC95C;
+  --story-on-lantern: #1F1400;
+  --story-luma: #38C6B6;
+  --story-luma-soft: rgba(56, 198, 182, 0.15);
 }
 
 @theme inline {
@@ -57,8 +90,43 @@
   --color-on-lantern: var(--on-lantern);
   --color-lavender: var(--lavender);
   --color-lavender-muted: var(--lavender-muted);
+
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-surface: var(--surface);
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-line: var(--line);
+  --color-brand-teal: var(--brand-teal);
+  --color-brand-teal-hover: var(--brand-teal-hover);
+  --color-brand-teal-soft: var(--brand-teal-soft);
+  --color-twilight: var(--twilight);
+  --color-twilight-2: var(--twilight-2);
+  --color-twilight-deep: var(--twilight-deep);
+  --color-twilight-text: var(--twilight-text);
+  --color-twilight-muted: var(--twilight-muted);
+  --color-lantern-warm: var(--lantern-warm);
+
+  --color-story-night: var(--story-night);
+  --color-story-night-alt: var(--story-night-alt);
+  --color-story-surface: var(--story-surface);
+  --color-story-surface-hover: var(--story-surface-hover);
+  --color-story-deep: var(--story-deep);
+  --color-story-ink: var(--story-ink);
+  --color-story-muted: var(--story-muted);
+  --color-story-line: var(--story-line);
+  --color-story-lantern: var(--story-lantern);
+  --color-story-lantern-hover: var(--story-lantern-hover);
+  --color-story-on-lantern: var(--story-on-lantern);
+  --color-story-luma: var(--story-luma);
+  --color-story-luma-soft: var(--story-luma-soft);
+
   --font-display: var(--font-fredoka);
   --font-sans: var(--font-nunito);
+  --font-editorial: var(--font-editorial);
+  --font-body: var(--font-body);
+  --font-storybook: var(--font-storybook);
 }
 
 html {
@@ -67,8 +135,8 @@ html {
 }
 
 body {
-  background: var(--cream);
-  color: var(--ink);
+  background: var(--story-night);
+  color: var(--story-ink);
   font-family: var(--font-nunito), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -80,73 +148,128 @@ h3 {
 }
 
 :focus-visible {
-  outline: 3px solid var(--glow);
-  outline-offset: 3px;
+  outline: 2px solid var(--story-luma);
+  outline-offset: 2px;
   border-radius: 8px;
+}
+
+/* Editorial typography and theme base */
+.font-editorial {
+  font-family: var(--font-editorial), Georgia, serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.font-storybook {
+  font-family: var(--font-storybook), var(--font-nunito), system-ui, sans-serif;
+}
+
+.landing-theme {
+  background-color: var(--story-night);
+  color: var(--story-ink);
+  font-family: var(--font-nunito), system-ui, sans-serif;
+}
+
+.storybook-theme {
+  background-color: var(--story-night);
+  color: var(--story-ink);
+  font-family: var(--font-nunito), system-ui, sans-serif;
 }
 
 /* In the components layer so Tailwind utilities (bg-night, p-0) can override. */
 @layer components {
-/* Clay-style surfaces for light sections */
-.clay {
-  background: #fff;
-  border: 3px solid var(--cream-2);
-  border-radius: 1.75rem;
-  box-shadow:
-    0 14px 30px -14px rgb(31 27 58 / 0.25),
-    inset 0 -4px 0 0 rgb(31 27 58 / 0.04);
-}
+  .btn-glow {
+    background: var(--glow);
+    color: var(--on-glow);
+    box-shadow:
+      0 0 0 0 rgb(251 191 36 / 0.6),
+      0 10px 28px -8px rgb(245 158 11 / 0.7),
+      inset 0 -4px 0 0 rgb(0 0 0 / 0.12);
+    transition:
+      transform 200ms ease-out,
+      background-color 200ms ease-out,
+      box-shadow 200ms ease-out;
+  }
+  .btn-glow:hover {
+    background: #fcd34d;
+    box-shadow:
+      0 0 0 6px rgb(251 191 36 / 0.18),
+      0 14px 34px -8px rgb(245 158 11 / 0.8),
+      inset 0 -4px 0 0 rgb(0 0 0 / 0.12);
+  }
+  .btn-glow:active {
+    transform: scale(0.97);
+  }
 
-.btn-glow {
-  background: var(--glow);
-  color: var(--on-glow);
-  box-shadow:
-    0 0 0 0 rgb(251 191 36 / 0.6),
-    0 10px 28px -8px rgb(245 158 11 / 0.7),
-    inset 0 -4px 0 0 rgb(0 0 0 / 0.12);
-  transition:
-    transform 200ms ease-out,
-    background-color 200ms ease-out,
-    box-shadow 200ms ease-out;
-}
-.btn-glow:hover {
-  background: #fcd34d;
-  box-shadow:
-    0 0 0 6px rgb(251 191 36 / 0.18),
-    0 14px 34px -8px rgb(245 158 11 / 0.8),
-    inset 0 -4px 0 0 rgb(0 0 0 / 0.12);
-}
-.btn-glow:active {
-  transform: scale(0.97);
-}
+  /* Landing: lantern-gold call to action, and quiet dusk surfaces. */
+  .btn-lantern {
+    background: var(--lantern);
+    color: var(--on-lantern);
+    box-shadow:
+      0 10px 30px -10px rgb(255 196 87 / 0.75),
+      inset 0 -4px 0 0 rgb(0 0 0 / 0.14);
+    transition:
+      transform 200ms ease-out,
+      background-color 200ms ease-out,
+      box-shadow 200ms ease-out;
+  }
+  .btn-lantern:hover {
+    background: #ffd47f;
+    box-shadow:
+      0 0 0 6px rgb(255 196 87 / 0.2),
+      0 14px 34px -10px rgb(255 196 87 / 0.85),
+      inset 0 -4px 0 0 rgb(0 0 0 / 0.14);
+  }
+  .btn-lantern:active {
+    transform: scale(0.97);
+  }
+  .dusk-surface {
+    background: rgb(255 255 255 / 0.05);
+    border: 1px solid rgb(217 207 245 / 0.14);
+    border-radius: 1.5rem;
+  }
 
-/* Landing: lantern-gold call to action, and quiet dusk surfaces. */
-.btn-lantern {
-  background: var(--lantern);
-  color: var(--on-lantern);
-  box-shadow:
-    0 10px 30px -10px rgb(255 196 87 / 0.75),
-    inset 0 -4px 0 0 rgb(0 0 0 / 0.14);
-  transition:
-    transform 200ms ease-out,
-    background-color 200ms ease-out,
-    box-shadow 200ms ease-out;
-}
-.btn-lantern:hover {
-  background: #ffd47f;
-  box-shadow:
-    0 0 0 6px rgb(255 196 87 / 0.2),
-    0 14px 34px -10px rgb(255 196 87 / 0.85),
-    inset 0 -4px 0 0 rgb(0 0 0 / 0.14);
-}
-.btn-lantern:active {
-  transform: scale(0.97);
-}
-.dusk-surface {
-  background: rgb(255 255 255 / 0.05);
-  border: 1px solid rgb(217 207 245 / 0.14);
-  border-radius: 1.5rem;
-}
+  .twilight-window {
+    background-color: var(--story-surface);
+    background-image: linear-gradient(180deg, var(--story-surface-hover) 0%, var(--story-surface) 100%);
+    border: 1px solid var(--story-line);
+    color: var(--story-ink);
+  }
+
+  .btn-editorial-lantern,
+  .btn-story-primary {
+    background-color: var(--story-lantern);
+    color: var(--story-on-lantern);
+    font-weight: 700;
+    transition: background-color 150ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+  }
+  .btn-editorial-lantern:hover,
+  .btn-story-primary:hover {
+    background-color: var(--story-lantern-hover);
+    box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.25);
+  }
+  .btn-editorial-lantern:active,
+  .btn-story-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-twilight-secondary,
+  .btn-story-secondary {
+    background-color: rgba(247, 243, 232, 0.06);
+    border: 1px solid rgba(247, 243, 232, 0.2);
+    color: var(--story-ink);
+    font-weight: 600;
+    transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out;
+  }
+  .btn-twilight-secondary:hover,
+  .btn-story-secondary:hover {
+    background-color: rgba(247, 243, 232, 0.12);
+    border-color: rgba(247, 243, 232, 0.35);
+  }
+  .btn-twilight-secondary:active,
+  .btn-story-secondary:active {
+    transform: scale(0.98);
+  }
 }
 
 /* Fireflies */

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { content, type Dict, type Lang } from "../content";
 import { Fireflies } from "./Fireflies";
 import { Arrow, Check, Compass, Play, Plus, Shield } from "./icons";
@@ -52,10 +52,10 @@ export function Landing() {
   useReveal(lang);
 
   return (
-    <div className="bg-dusk-deep text-moon">
+    <div className="landing-theme min-h-screen">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-lantern focus:px-4 focus:py-2 focus:text-on-lantern"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-story-luma focus:px-4 focus:py-2 focus:text-story-night focus:shadow-md font-semibold"
       >
         {t.meta.skip}
       </a>
@@ -108,30 +108,48 @@ function Container({ children, className = "" }: { children: ReactNode; classNam
   return <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
-function Kicker({ children }: { children: ReactNode }) {
-  return <p className="mb-3 font-display text-base font-semibold text-river-soft">{children}</p>;
+function Kicker({ children, className = "", dark }: { children: ReactNode; className?: string; dark?: boolean }) {
+  return (
+    <p className={`mb-3 text-sm font-bold tracking-wide text-story-luma sm:text-base ${className}`}>
+      {children}
+    </p>
+  );
 }
 
-function H2({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <h2 className={`font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl ${className}`}>{children}</h2>;
+function H2({ children, className = "", dark }: { children: ReactNode; className?: string; dark?: boolean }) {
+  return (
+    <h2
+      className={`font-storybook text-3xl font-bold leading-tight text-story-ink sm:text-4xl md:text-5xl text-balance ${className}`}
+    >
+      {children}
+    </h2>
+  );
 }
 
-function CtaButton({ children, className = "" }: { children: ReactNode; className?: string }) {
+function CtaButton({
+  children,
+  className = "",
+  variant = "editorial",
+}: {
+  children: ReactNode;
+  className?: string;
+  variant?: "editorial" | "lantern";
+}) {
   return (
     <a
       href="#start"
-      className={`btn-lantern inline-flex min-h-13 cursor-pointer items-center justify-center gap-2 rounded-2xl px-7 py-3 font-display text-lg font-semibold ${className}`}
+      className={`btn-story-primary inline-flex min-h-13 cursor-pointer items-center justify-center gap-2.5 rounded-xl px-7 py-3 text-base font-bold shadow-xs ${className}`}
     >
       {children}
-      <Arrow className="size-5" />
+      <Arrow className="size-4" />
     </a>
   );
 }
 
 function PilotNote({ children }: { children: ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-2 rounded-xl border border-lavender/20 px-3 py-1.5 text-sm font-semibold text-lavender">
-      <span className="size-2 rounded-full bg-river-soft" aria-hidden="true" />
+    <p className="inline-flex items-center gap-2 rounded-full border border-story-line bg-story-surface px-3.5 py-1.5 text-xs font-semibold text-story-muted">
+      <span className="size-2 rounded-full bg-story-luma" aria-hidden="true" />
       {children}
     </p>
   );
@@ -139,15 +157,24 @@ function PilotNote({ children }: { children: ReactNode }) {
 
 /* ---------- header ---------- */
 
-function Logo() {
+function Logo({ dark = false }: { dark?: boolean }) {
+  const gradientId = useId();
   return (
-    <a href="#main" className="flex items-center gap-2" aria-label="ADHDCheck">
-      <span className="relative grid size-8 place-items-center">
-        <span className="absolute inset-0 rounded-full bg-lantern/30 blur-md" />
-        <span className="relative size-3 rounded-full bg-lantern shadow-[0_0_14px_4px_rgb(255_196_87/0.7)]" />
-      </span>
-      <span className="font-display text-xl font-bold tracking-tight text-moon">
-        ADHD<span className="text-lantern">Check</span>
+    <a href="#main" className="group flex items-center gap-2.5" aria-label="ADHDCheck">
+      <svg viewBox="0 0 32 32" className="size-7 shrink-0 transition-transform duration-300 group-hover:scale-110" aria-hidden="true">
+        <defs>
+          <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFFDF7" stopOpacity="1" />
+            <stop offset="35%" stopColor="#F5B841" stopOpacity="0.9" />
+            <stop offset="70%" stopColor="#F5B841" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#F5B841" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="16" cy="16" r="14" fill={`url(#${gradientId})`} />
+        <circle cx="16" cy="16" r="4" fill="#FFFDF7" />
+      </svg>
+      <span className="font-storybook text-xl font-bold tracking-tight text-story-ink">
+        ADHD<span className="text-story-lantern">Check</span>
       </span>
     </a>
   );
@@ -155,15 +182,17 @@ function Logo() {
 
 function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) => void; label: string }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-xl border border-white/15 bg-white/5 p-1">
+    <div role="group" aria-label={label} className="flex rounded-xl border border-story-line bg-story-surface p-1">
       {(["ro", "en"] as const).map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => setLang(l)}
           aria-pressed={lang === l}
-          className={`min-h-9 min-w-10 cursor-pointer rounded-lg px-3 text-sm font-bold uppercase transition-colors ${
-            lang === l ? "bg-moon text-dusk" : "text-lavender hover:text-moon"
+          className={`min-h-10 min-w-11 cursor-pointer rounded-lg px-3 text-xs font-bold uppercase tracking-wider transition-all ${
+            lang === l
+              ? "border border-story-line bg-story-night-alt text-story-ink shadow-xs"
+              : "text-story-muted hover:text-story-ink"
           }`}
         >
           {l}
@@ -175,26 +204,26 @@ function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) =
 
 function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-dusk-deep/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-story-line bg-story-night/90 backdrop-blur-md">
       <Container className="flex h-16 items-center justify-between gap-3">
         <Logo />
-        <nav aria-label="Main" className="hidden items-center gap-7 text-sm font-semibold text-lavender lg:flex">
-          <a className="hover:text-moon" href="#how">{t.nav.how}</a>
-          <a className="hover:text-moon" href="#offer">{t.nav.offer}</a>
-          <a className="hover:text-moon" href="#privacy">{t.nav.privacy}</a>
-          <a className="hover:text-moon" href="#faq">{t.nav.faq}</a>
+        <nav aria-label="Main" className="hidden items-center gap-7 text-sm font-semibold text-story-muted lg:flex">
+          <a className="transition-colors hover:text-story-ink" href="#how">{t.nav.how}</a>
+          <a className="transition-colors hover:text-story-ink" href="#offer">{t.nav.offer}</a>
+          <a className="transition-colors hover:text-story-ink" href="#privacy">{t.nav.privacy}</a>
+          <a className="transition-colors hover:text-story-ink" href="#faq">{t.nav.faq}</a>
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <LangToggle lang={lang} setLang={setLang} label={t.nav.langLabel} />
           <a
             href="/login"
-            className="inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-2 text-sm font-semibold text-lavender hover:text-moon sm:px-3"
+            className="inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-2 text-sm font-semibold text-story-muted transition-colors hover:text-story-ink sm:px-3"
           >
             {t.nav.login}
           </a>
           <a
             href="#start"
-            className="btn-lantern hidden min-h-10 items-center rounded-xl px-5 font-display text-sm font-semibold sm:inline-flex"
+            className="btn-story-primary hidden min-h-10 items-center rounded-xl px-5 text-sm font-bold sm:inline-flex"
           >
             {t.nav.cta}
           </a>
@@ -208,60 +237,70 @@ function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) 
 
 function Hero({ t }: { t: Dict }) {
   return (
-    <section id="hero" className="relative overflow-hidden bg-dusk">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,#3a2d7a_0%,transparent_65%)]" aria-hidden="true" />
-      <Fireflies />
-      <Container className="relative pb-16 pt-8 text-center sm:pt-14 md:pb-24">
-        <p className="text-sm font-semibold text-lavender sm:text-base">{t.hero.eyebrow}</p>
-        <h1 className="mx-auto mt-3 max-w-4xl font-display text-[2.35rem] font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
+    <section id="hero" className="relative overflow-hidden bg-story-night pb-16 pt-8 sm:pt-14 md:pb-24">
+      <Fireflies prominent count={10} />
+      <Container className="relative z-10 text-center">
+        <p className="text-sm font-semibold tracking-wide text-story-luma sm:text-base">{t.hero.eyebrow}</p>
+
+        <h1 className="mx-auto mt-4 max-w-4xl font-storybook text-4xl font-bold leading-[1.08] tracking-tight text-story-ink sm:text-5xl md:text-6xl lg:text-7xl text-balance">
           {t.hero.title}
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-lavender md:text-xl">{t.hero.sub}</p>
-        <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+
+        <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-story-muted sm:text-lg md:text-xl text-pretty">
+          {t.hero.sub}
+        </p>
+
+        <div className="mt-8 flex flex-col items-stretch justify-center gap-3.5 sm:flex-row sm:items-center">
           <CtaButton>{t.hero.cta}</CtaButton>
           <a
             href="#how"
-            className="inline-flex min-h-13 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-white/20 px-6 font-display font-semibold text-moon transition-colors hover:border-white/50"
+            className="btn-story-secondary inline-flex min-h-13 cursor-pointer items-center justify-center gap-2 rounded-xl px-6 text-base font-semibold shadow-xs"
           >
-            <Play className="size-4" />
+            <Play className="size-4 text-story-luma" />
             {t.hero.secondary}
           </a>
         </div>
-        <ul className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold text-lavender">
+
+        <ul className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-semibold text-story-muted">
           {t.hero.trust.map((x) => (
             <li key={x} className="flex items-center gap-2">
-              <Check className="size-4 text-river-soft" />
-              {x}
+              <Check className="size-4 text-story-luma" />
+              <span>{x}</span>
             </li>
           ))}
         </ul>
+
         <div className="mt-5">
           <PilotNote>{t.hero.pilot}</PilotNote>
         </div>
 
-        <div className="relative mx-auto mt-12 max-w-5xl md:mt-16">
-          <div className="absolute -inset-x-10 -inset-y-6 rounded-full bg-river/20 blur-3xl" aria-hidden="true" />
-          <div className="relative hidden overflow-hidden rounded-[2rem] border-[10px] border-[#0d0a24] shadow-2xl md:block md:w-[78%]">
-            <Image
-              src="/landing/treasure-choice-play.jpg"
-              alt=""
-              width={2400}
-              height={1600}
-              sizes="(min-width: 768px) 60vw, 0px"
-              className="block h-auto w-full"
-              loading="eager"
-            />
-          </div>
-          <div className="relative mx-auto w-[62%] max-w-[260px] overflow-hidden rounded-[2.4rem] border-[8px] border-[#0d0a24] shadow-2xl md:absolute md:-bottom-8 md:right-0 md:mx-0 md:w-[30%] md:max-w-none">
-            <Image
-              src="/landing/bridge-wait-portrait.jpg"
-              alt={t.hero.imgAlt}
-              width={860}
-              height={1640}
-              sizes="(min-width: 768px) 30vw, 62vw"
-              className="block h-auto w-full"
-              preload
-            />
+        <div className="relative mx-auto mt-12 max-w-5xl overflow-hidden rounded-[2rem] border border-story-line bg-story-surface p-5 shadow-2xl sm:p-7 md:mt-16 md:p-9 lg:p-11">
+          <div className="relative mx-auto w-full md:max-w-[88%] lg:max-w-[86%]">
+            {/* Tablet Landscape - visible from md upwards */}
+            <div className="relative hidden overflow-hidden rounded-[1.75rem] border-[6px] border-story-night-alt shadow-2xl md:block md:w-[78%] lg:w-[80%]">
+              <Image
+                src="/landing/treasure-choice-play.jpg"
+                alt=""
+                width={2400}
+                height={1600}
+                sizes="(min-width: 768px) 55vw, 0px"
+                className="block h-auto w-full object-cover"
+                priority
+              />
+            </div>
+
+            {/* Phone Portrait - centered on mobile, positioned bottom-right on tablet/desktop */}
+            <div className="relative mx-auto w-[68%] max-w-[240px] overflow-hidden rounded-[2.2rem] border-[6px] border-story-night-alt shadow-2xl md:absolute md:bottom-2 md:right-0 lg:bottom-4 md:w-[26%] lg:w-[25%]">
+              <Image
+                src="/landing/bridge-wait-portrait.jpg"
+                alt={t.hero.imgAlt}
+                width={860}
+                height={1640}
+                sizes="(min-width: 768px) 25vw, 68vw"
+                className="block h-auto w-full object-cover"
+                priority
+              />
+            </div>
           </div>
         </div>
       </Container>
@@ -273,31 +312,69 @@ function Hero({ t }: { t: Dict }) {
 
 function Problem({ t }: { t: Dict }) {
   return (
-    <section className="relative bg-dusk-deep py-20 md:py-28">
+    <section id="problem" className="relative border-y border-story-line bg-story-night-alt py-20 text-story-ink md:py-28">
       <Container>
-        <div className="reveal max-w-3xl">
-          <Kicker>{t.problem.kicker}</Kicker>
-          <H2>{t.problem.title}</H2>
-        </div>
-        <ul className="mt-10 grid gap-x-10 gap-y-6 md:grid-cols-2">
-          {t.problem.items.map((item, i) => (
-            <li key={i} className="reveal border-t border-lavender/15 pt-5 text-lg leading-relaxed text-moon">
-              “{item}”
-            </li>
-          ))}
-        </ul>
+        <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16 items-start">
+          {/* Left Column - Sticky on desktop */}
+          <div className="reveal lg:sticky lg:top-24 space-y-6">
+            <div>
+              <Kicker dark>{t.problem.kicker}</Kicker>
+              <H2 dark className="text-balance">{t.problem.title}</H2>
+            </div>
+            <div className="border-l-2 border-story-luma pl-5 py-1">
+              <p className="font-storybook text-xl font-bold leading-snug text-story-ink text-balance sm:text-2xl">
+                {t.problem.punch}
+              </p>
+            </div>
+          </div>
 
-        <p className="reveal mt-16 text-base font-semibold text-lavender">{t.problem.statsIntro}</p>
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {t.problem.stats.map((s, i) => (
-            <figure key={i} className="reveal dusk-surface flex flex-col p-6">
-              <p className="font-display text-4xl font-bold tabular-nums text-lantern md:text-5xl">{s.value}</p>
-              <p className="mt-3 flex-1 leading-relaxed text-moon">{s.label}</p>
-              <figcaption className="mt-5 border-t border-white/10 pt-3 text-sm text-lavender-muted">{s.source}</figcaption>
-            </figure>
-          ))}
+          {/* Right Column - Editorial Stream + Monumental Stats */}
+          <div className="space-y-12">
+            {/* Parent Quotes */}
+            <ul className="space-y-6">
+              {t.problem.items.map((item, i) => (
+                <li
+                  key={i}
+                  className="reveal border-t border-story-line pt-5 flex items-start gap-4"
+                >
+                  <span className="font-mono text-xs font-bold text-story-luma/80 shrink-0 pt-1">
+                    0{i + 1}
+                  </span>
+                  <p className="text-base sm:text-lg leading-relaxed text-story-muted text-pretty">
+                    “{item}”
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            {/* Research Stats */}
+            <div className="reveal pt-4">
+              <p className="text-sm font-bold uppercase tracking-wider text-story-luma">
+                {t.problem.statsIntro}
+              </p>
+              <div className="mt-6 grid gap-8 border-y border-story-line py-8 md:grid-cols-2 md:divide-x md:divide-story-line">
+                {t.problem.stats.map((s, i) => (
+                  <figure
+                    key={i}
+                    className={`flex flex-col justify-between ${i > 0 ? "md:pl-8" : "md:pr-8"}`}
+                  >
+                    <div>
+                      <p className="font-storybook text-5xl font-bold tabular-nums text-story-lantern sm:text-6xl">
+                        {s.value}
+                      </p>
+                      <p className="mt-3 text-base sm:text-lg leading-relaxed text-story-ink text-pretty">
+                        {s.label}
+                      </p>
+                    </div>
+                    <figcaption className="mt-6 text-xs leading-normal text-story-muted/80">
+                      {s.source}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <p className="reveal mt-14 max-w-3xl font-display text-2xl font-semibold leading-snug md:text-3xl">{t.problem.punch}</p>
       </Container>
     </section>
   );
@@ -307,44 +384,56 @@ function Problem({ t }: { t: Dict }) {
 
 function How({ t }: { t: Dict }) {
   return (
-    <section id="how" className="relative overflow-hidden bg-dusk py-20 md:py-28">
-      <Fireflies count={6} />
+    <section id="how" className="relative bg-story-night py-20 text-story-ink md:py-28">
       <Container className="relative">
-        <div className="reveal max-w-3xl">
-          <Kicker>{t.how.kicker}</Kicker>
-          <H2>{t.how.title}</H2>
-        </div>
-        <div className="mt-12 grid items-start gap-10 lg:grid-cols-[1.25fr_0.75fr]">
-          <ol className="space-y-8">
-            {t.how.steps.map((s, i) => (
-              <li key={i} className="reveal flex gap-5">
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-river font-display text-xl font-bold text-dusk-deep">
-                  {i + 1}
-                </span>
-                <div>
-                  <h3 className="font-display text-2xl font-semibold">
-                    {s.title}
-                    <span className="ml-3 align-middle text-sm font-bold text-river-soft">{s.time}</span>
-                  </h3>
-                  <p className="mt-2 max-w-xl text-lg leading-relaxed text-lavender">{s.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <figure className="reveal mx-auto w-full max-w-sm">
-            <figcaption className="mb-3 text-center text-sm font-semibold text-lavender">{t.how.handbackLabel}</figcaption>
-            <div className="relative overflow-hidden rounded-[2rem] border-[8px] border-[#0d0a24]">
-              <Image
-                src="/landing/treasure-choice-wide.jpg"
-                alt=""
-                width={2400}
-                height={1600}
-                sizes="(min-width: 1024px) 24rem, 90vw"
-                className="block aspect-[4/3] h-auto w-full object-cover object-[50%_40%]"
-              />
-              <div className="absolute inset-0 grid place-items-center bg-dusk-deep/70 p-6">
-                <p className="rounded-2xl bg-[#fffdf7] px-5 py-4 text-center font-display text-xl font-semibold leading-snug text-[#2a1f5c] shadow-xl">
-                  {t.how.handback}
+        <div className="grid items-start gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+          {/* Left Column: Heading + Story chapters */}
+          <div className="reveal space-y-8">
+            <div>
+              <Kicker dark>{t.how.kicker}</Kicker>
+              <H2 dark className="text-balance">{t.how.title}</H2>
+            </div>
+            <ol className="relative space-y-8 before:absolute before:left-5 before:top-4 before:bottom-4 before:w-px before:bg-story-line">
+              {t.how.steps.map((s, i) => (
+                <li key={i} className="relative flex items-start gap-5">
+                  <span className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-xl border border-story-line bg-story-surface font-storybook text-base font-bold text-story-lantern shadow-xs">
+                    0{i + 1}
+                  </span>
+                  <div className="pt-0.5">
+                    <h3 className="font-storybook text-xl font-bold text-story-ink sm:text-2xl">
+                      {s.title}
+                      <span className="ml-3 inline-block rounded-full border border-story-line bg-story-surface px-2.5 py-0.5 align-middle text-xs font-semibold text-story-luma">
+                        {s.time}
+                      </span>
+                    </h3>
+                    <p className="mt-2 max-w-xl text-base leading-relaxed text-story-muted sm:text-lg text-pretty">
+                      {s.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Right Column: Handback moment */}
+          <figure className="reveal mx-auto w-full max-w-md lg:mt-6">
+            <figcaption className="mb-3 text-center text-xs font-bold uppercase tracking-wider text-story-luma">
+              {t.how.handbackLabel}
+            </figcaption>
+            <div className="relative overflow-hidden rounded-[2rem] border border-story-line bg-story-surface p-4 shadow-2xl">
+              <div className="overflow-hidden rounded-2xl border border-story-line/60">
+                <Image
+                  src="/landing/treasure-choice-wide.jpg"
+                  alt=""
+                  width={2400}
+                  height={1600}
+                  sizes="(min-width: 1024px) 26rem, 90vw"
+                  className="block aspect-[4/3] h-auto w-full object-cover object-[50%_40%]"
+                />
+              </div>
+              <div className="pt-4 text-center">
+                <p className="font-storybook text-base font-bold leading-snug text-story-ink sm:text-lg text-pretty">
+                  “{t.how.handback}”
                 </p>
               </div>
             </div>
@@ -358,47 +447,120 @@ function How({ t }: { t: Dict }) {
 /* ---------- game ---------- */
 
 function Game({ t }: { t: Dict }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const activeGame = t.game.games[activeIdx] ?? t.game.games[0];
+  const isPortrait = Boolean(activeGame.img?.includes("portrait"));
+
   return (
-    <section className="bg-dusk-deep py-20 md:py-28">
-      <Container>
+    <section id="game" className="relative overflow-hidden bg-story-night-alt py-20 text-story-ink md:py-28">
+      <Fireflies count={6} />
+      <Container className="relative z-10">
         <div className="reveal max-w-3xl">
-          <Kicker>{t.game.kicker}</Kicker>
-          <H2>{t.game.title}</H2>
-          <p className="mt-4 text-lg text-lavender">{t.game.sub}</p>
+          <Kicker dark>{t.game.kicker}</Kicker>
+          <H2 dark className="text-balance">{t.game.title}</H2>
+          <p className="mt-4 text-base leading-relaxed text-story-muted sm:text-lg text-pretty">
+            {t.game.sub}
+          </p>
         </div>
-        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {t.game.games.map((g) => (
-            <li key={g.name} className="reveal overflow-hidden rounded-3xl bg-dusk-2/60">
-              {g.img ? (
+
+        {/* Master-Detail Stage */}
+        <div className="mt-12 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] items-stretch">
+          {/* Big Stage (Screen) */}
+          <div className="reveal flex flex-col justify-between rounded-[2rem] border border-story-line bg-story-surface p-5 shadow-2xl sm:p-6">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-story-line/60 bg-story-night">
+              {activeGame.img ? (
                 <Image
-                  src={g.img}
-                  alt=""
-                  width={1200}
-                  height={900}
-                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                  className="block aspect-[4/3] h-auto w-full object-cover"
+                  src={activeGame.img}
+                  alt={activeGame.what}
+                  width={isPortrait ? 860 : 2400}
+                  height={isPortrait ? 1640 : 1500}
+                  sizes="(min-width: 1024px) 50vw, 90vw"
+                  className={`block size-full object-cover ${
+                    isPortrait ? "object-[50%_38%]" : "object-center"
+                  }`}
                 />
               ) : (
-                <div className="grid aspect-[4/3] place-items-center bg-[radial-gradient(circle_at_50%_40%,#2fbfae55,#1d1640_70%)]" aria-hidden="true">
-                  <Compass className="size-14 text-river-soft" />
+                <div className="grid size-full place-items-center bg-story-night text-story-luma" aria-hidden="true">
+                  <Compass className="size-16" />
                 </div>
               )}
-              <div className="p-5">
-                <h3 className="font-display text-xl font-semibold">{g.name}</h3>
-                <p className="mt-1 leading-relaxed text-lavender">{g.what}</p>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+              <div>
+                <h3 className="font-storybook text-2xl font-bold text-story-ink sm:text-3xl">
+                  {activeGame.name}
+                </h3>
+                <p className="mt-1 text-base text-story-muted text-pretty">
+                  {activeGame.what}
+                </p>
               </div>
-            </li>
-          ))}
-        </ul>
-        <p className="reveal mt-6 flex flex-wrap items-center gap-3 text-lavender">
-          <span className="rounded-lg bg-lantern/15 px-2.5 py-1 text-sm font-bold text-lantern">{t.game.coreLabel}</span>
-          {t.game.core}
-        </p>
-        <ul className="reveal mt-10 flex flex-wrap gap-x-6 gap-y-3 font-semibold text-moon">
+              <span className="mt-2 text-xs font-bold uppercase tracking-wider text-story-luma shrink-0 sm:mt-0">
+                {activeIdx + 1} / {t.game.games.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Adventure Selector (Right side tablist) */}
+          <div role="tablist" aria-label={t.game.title} className="reveal flex flex-col gap-3 justify-center">
+            {t.game.games.map((g, i) => {
+              const isActive = activeIdx === i;
+              return (
+                <button
+                  key={g.name}
+                  type="button"
+                  role="tab"
+                  id={`tab-${i}`}
+                  aria-selected={isActive}
+                  aria-controls={`panel-${i}`}
+                  onClick={() => setActiveIdx(i)}
+                  className={`group flex items-center gap-4 rounded-2xl border p-4 text-left transition-all cursor-pointer ${
+                    isActive
+                      ? "border-story-lantern bg-story-surface shadow-md ring-1 ring-story-lantern/40"
+                      : "border-story-line bg-story-surface/40 hover:bg-story-surface hover:border-story-line/80"
+                  }`}
+                >
+                  <span
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl font-storybook text-sm font-bold transition-colors ${
+                      isActive
+                        ? "bg-story-lantern text-story-on-lantern"
+                        : "border border-story-line bg-story-night text-story-muted group-hover:text-story-ink"
+                    }`}
+                  >
+                    0{i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`font-storybook text-lg font-bold truncate transition-colors ${
+                        isActive ? "text-story-ink" : "text-story-muted group-hover:text-story-ink"
+                      }`}
+                    >
+                      {g.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-story-muted/80 truncate">
+                      {g.what}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Core dev note */}
+        <div className="reveal mt-10 inline-flex flex-wrap items-center gap-3 rounded-2xl border border-story-line bg-story-surface px-4 py-3 text-sm text-story-muted">
+          <span className="rounded-lg border border-story-lantern/30 bg-story-lantern/15 px-2.5 py-1 text-xs font-bold text-story-lantern">
+            {t.game.coreLabel}
+          </span>
+          <span className="leading-relaxed">{t.game.core}</span>
+        </div>
+
+        {/* Calm commitments */}
+        <ul className="reveal mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-story-line pt-8 text-sm font-semibold text-story-muted">
           {t.game.calm.map((c) => (
-            <li key={c} className="flex items-center gap-2">
-              <Check className="size-5 text-river-soft" />
-              {c}
+            <li key={c} className="flex items-center gap-2.5">
+              <Check className="size-4 text-story-luma shrink-0" />
+              <span>{c}</span>
             </li>
           ))}
         </ul>
@@ -411,25 +573,30 @@ function Game({ t }: { t: Dict }) {
 
 function Result({ t }: { t: Dict }) {
   return (
-    <section className="bg-dusk py-20 md:py-28">
-      <Container className="grid items-center gap-10 md:grid-cols-2">
+    <section id="result" className="relative bg-story-night py-20 text-story-ink md:py-28">
+      <Container className="grid items-start gap-12 md:grid-cols-2 md:items-center">
         <div className="reveal">
           <Kicker>{t.result.kicker}</Kicker>
           <H2>{t.result.title}</H2>
-          <p className="mt-5 text-lg text-lavender">{t.result.sub}</p>
+          <p className="mt-5 text-lg leading-relaxed text-story-muted text-pretty">{t.result.sub}</p>
         </div>
-        <div className="reveal space-y-3">
+        <div className="reveal space-y-4">
           {[t.result.a, t.result.b].map((h) => (
-            <p key={h} className="dusk-surface flex items-start gap-3 p-5 font-display text-xl font-semibold leading-snug">
-              <Compass className="mt-1 size-5 shrink-0 text-river-soft" />
-              {h}
-            </p>
+            <div
+              key={h}
+              className="flex items-start gap-4 rounded-2xl border border-story-line bg-story-surface p-5 shadow-xs transition-colors hover:border-story-line/80"
+            >
+              <Compass className="mt-1 size-5 shrink-0 text-story-luma" />
+              <p className="font-storybook text-lg font-bold leading-snug text-story-ink md:text-xl">{h}</p>
+            </div>
           ))}
-          <p className="flex items-start gap-3 rounded-2xl border border-lantern/40 bg-lantern/10 p-5 text-lg leading-relaxed text-moon">
-            <Arrow className="mt-1 size-5 shrink-0 text-lantern" />
-            {t.result.next}
-          </p>
-          <p className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-moon">{t.result.disclaimer}</p>
+          <div className="flex items-start gap-4 rounded-2xl border border-story-luma/30 bg-story-surface p-5 ring-1 ring-story-luma/20">
+            <Arrow className="mt-1 size-5 shrink-0 text-story-luma" />
+            <p className="text-base leading-relaxed text-story-ink md:text-lg text-pretty">{t.result.next}</p>
+          </div>
+          <div className="rounded-xl border border-story-line bg-story-surface/60 px-4 py-3 text-sm text-story-muted">
+            <p className="text-pretty">{t.result.disclaimer}</p>
+          </div>
         </div>
       </Container>
     </section>
@@ -441,43 +608,50 @@ function Result({ t }: { t: Dict }) {
 function Offer({ t }: { t: Dict }) {
   const { free, paid } = t.offer;
   return (
-    <section id="offer" className="bg-dusk-deep py-20 md:py-28">
+    <section id="offer" className="relative border-y border-story-line bg-story-night-alt py-20 text-story-ink md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
           <Kicker>{t.offer.kicker}</Kicker>
           <H2>{t.offer.title}</H2>
         </div>
-        <div className="mt-12 grid gap-5 md:grid-cols-2">
-          <article className="reveal dusk-surface flex flex-col p-7">
-            <h3 className="font-display text-xl font-semibold text-river-soft">{free.label}</h3>
-            <p className="mt-2 font-display text-5xl font-bold">{free.price}</p>
-            <ul className="mt-6 space-y-3">
-              {free.items.map((it) => (
-                <li key={it} className="flex gap-3 text-lg text-moon">
-                  <Check className="mt-1 size-5 shrink-0 text-river-soft" />
-                  {it}
-                </li>
-              ))}
-            </ul>
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
+          {/* Free Tier */}
+          <article className="reveal flex flex-col justify-between rounded-3xl border border-story-line bg-story-surface p-7 shadow-lg">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-story-muted">{free.label}</p>
+              <p className="mt-2 font-storybook text-4xl font-bold tabular-nums text-story-ink md:text-5xl">{free.price}</p>
+              <ul className="mt-6 space-y-3.5">
+                {free.items.map((it) => (
+                  <li key={it} className="flex items-start gap-3 text-base text-story-muted">
+                    <Check className="mt-1 size-4 shrink-0 text-story-luma" />
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </article>
-          <article className="reveal flex flex-col rounded-3xl border-2 border-lantern/60 bg-dusk-2 p-7">
-            <h3 className="font-display text-xl font-semibold text-lantern">{paid.label}</h3>
-            <p className="mt-2 font-display text-5xl font-bold">{paid.price}</p>
-            <p className="mt-1 font-semibold text-lavender">{paid.priceNote}</p>
-            <ul className="mt-6 space-y-3">
-              {paid.items.map((it) => (
-                <li key={it} className="flex gap-3 text-lg text-moon">
-                  <Check className="mt-1 size-5 shrink-0 text-lantern" />
-                  {it}
-                </li>
-              ))}
-            </ul>
+
+          {/* Paid Tier (Featured with warm lantern highlight) */}
+          <article className="reveal relative flex flex-col justify-between rounded-3xl border-2 border-story-lantern bg-story-surface p-7 shadow-xl ring-1 ring-story-lantern/40">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-story-lantern">{paid.label}</p>
+              <p className="mt-2 font-storybook text-4xl font-bold tabular-nums text-story-lantern md:text-5xl">{paid.price}</p>
+              <p className="mt-1 text-xs font-semibold text-story-muted">{paid.priceNote}</p>
+              <ul className="mt-6 space-y-3.5">
+                {paid.items.map((it) => (
+                  <li key={it} className="flex items-start gap-3 text-base text-story-ink">
+                    <Check className="mt-1 size-4 shrink-0 text-story-lantern" />
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </article>
         </div>
-        <div className="reveal mt-8 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="flex items-start gap-3 text-lavender">
-            <Shield className="mt-0.5 size-6 shrink-0 text-river-soft" />
-            {t.offer.note}
+        <div className="reveal mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-center gap-3 text-sm font-semibold text-story-muted">
+            <Shield className="size-5 shrink-0 text-story-luma" />
+            <span>{t.offer.note}</span>
           </p>
           <CtaButton className="w-full sm:w-auto">{t.offer.cta}</CtaButton>
         </div>
@@ -489,24 +663,54 @@ function Offer({ t }: { t: Dict }) {
 /* ---------- privacy ---------- */
 
 function Privacy({ t }: { t: Dict }) {
+  const [anchor, ...rest] = t.privacy.items;
   return (
-    <section id="privacy" className="bg-dusk py-20 md:py-28">
+    <section id="privacy" className="relative bg-story-night py-20 text-story-ink md:py-28">
       <Container>
         <div className="reveal max-w-3xl">
           <Kicker>{t.privacy.kicker}</Kicker>
           <H2>{t.privacy.title}</H2>
         </div>
-        <dl className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2 lg:grid-cols-3">
-          {t.privacy.items.map((p) => (
-            <div key={p.title} className="reveal border-t border-lavender/15 pt-5">
-              <dt className="flex items-center gap-2 font-display text-xl font-semibold">
-                <Shield className="size-5 shrink-0 text-river-soft" />
-                {p.title}
-              </dt>
-              <dd className="mt-2 leading-relaxed text-lavender">{p.body}</dd>
+        <div className="mt-12 grid gap-6 lg:grid-cols-12 items-stretch">
+          {/* Featured Anchor Card (EU Hosting / Core Security) */}
+          {anchor && (
+            <div className="reveal flex flex-col justify-between rounded-3xl border border-story-luma/30 bg-story-surface p-7 shadow-lg lg:col-span-5">
+              <div>
+                <div className="flex items-center gap-3.5">
+                  <Shield className="size-7 shrink-0 text-story-luma" />
+                  <h3 className="font-storybook text-2xl font-bold text-story-ink sm:text-3xl text-balance">
+                    {anchor.title}
+                  </h3>
+                </div>
+                <p className="mt-4 text-base leading-relaxed text-story-muted sm:text-lg text-pretty">
+                  {anchor.body}
+                </p>
+              </div>
             </div>
-          ))}
-        </dl>
+          )}
+
+          {/* 2x2 Balanced Grid for the remaining 4 items (No 3+2 orphan gap) */}
+          <div className="reveal grid gap-4 sm:grid-cols-2 lg:col-span-7">
+            {rest.map((p) => (
+              <div
+                key={p.title}
+                className="flex flex-col justify-between rounded-2xl border border-story-line bg-story-surface/60 p-6 shadow-xs transition-colors hover:border-story-line/80 hover:bg-story-surface"
+              >
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <Shield className="size-4 shrink-0 text-story-luma" />
+                    <h4 className="font-storybook text-lg font-bold text-story-ink text-balance">
+                      {p.title}
+                    </h4>
+                  </div>
+                  <p className="mt-2.5 text-sm leading-relaxed text-story-muted text-pretty">
+                    {p.body}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </Container>
     </section>
   );
@@ -516,20 +720,20 @@ function Privacy({ t }: { t: Dict }) {
 
 function Faq({ t }: { t: Dict }) {
   return (
-    <section id="faq" className="bg-dusk-deep py-20 md:py-28">
+    <section id="faq" className="relative border-y border-story-line bg-story-night-alt py-20 text-story-ink md:py-28">
       <Container className="max-w-3xl">
         <div className="reveal">
           <Kicker>{t.faq.kicker}</Kicker>
           <H2>{t.faq.title}</H2>
         </div>
-        <div className="mt-10 divide-y divide-lavender/15 border-y border-lavender/15">
+        <div className="mt-10 divide-y divide-story-line border-y border-story-line">
           {t.faq.items.map((f, i) => (
             <details key={i} className="group [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-display text-lg font-semibold">
-                {f.q}
-                <Plus className="size-5 shrink-0 text-river-soft transition-transform group-open:rotate-45" />
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-storybook text-lg font-bold text-story-ink transition-colors hover:text-story-lantern focus-visible:outline-2 focus-visible:outline-story-lantern">
+                <span>{f.q}</span>
+                <Plus className="size-5 shrink-0 text-story-luma transition-transform duration-200 group-open:rotate-45" />
               </summary>
-              <p className="pb-6 leading-relaxed text-lavender">{f.a}</p>
+              <p className="pb-6 text-base leading-relaxed text-story-muted sm:text-lg text-pretty">{f.a}</p>
             </details>
           ))}
         </div>
@@ -546,7 +750,7 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(email)) {
       setState("invalid");
       return;
     }
@@ -567,20 +771,19 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
     state === "ok" ? t.final.formSuccess : state === "invalid" ? t.final.formError : state === "fail" ? t.final.formFail : null;
 
   return (
-    <section id="start" className="relative overflow-hidden bg-dusk py-20 md:py-28">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,#3a2d7a_0%,transparent_65%)]" aria-hidden="true" />
-      <Fireflies />
-      <Container className="relative max-w-3xl text-center">
-        <H2 className="md:text-6xl">{t.final.title}</H2>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-lavender">{t.final.sub}</p>
+    <section id="start" className="relative overflow-hidden bg-story-night py-20 text-story-ink md:py-28">
+      <Fireflies count={6} />
+      <Container className="relative z-10 max-w-3xl text-center">
+        <H2 className="md:text-5xl lg:text-6xl text-balance">{t.final.title}</H2>
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-story-muted text-pretty">{t.final.sub}</p>
 
         {state === "ok" ? (
-          <p role="status" className="mx-auto mt-10 max-w-xl rounded-2xl border border-river/50 bg-river/10 p-5 font-semibold">
+          <p role="status" className="mx-auto mt-10 max-w-xl rounded-2xl border border-story-luma/40 bg-story-surface p-5 font-bold text-story-ink">
             {msg}
           </p>
         ) : (
           <form onSubmit={submit} noValidate className="mx-auto mt-10 max-w-xl text-left">
-            <label htmlFor="email" className="mb-2 block text-sm font-bold">
+            <label htmlFor="email" className="mb-2 block text-sm font-bold text-story-ink">
               {t.final.formLabel}
             </label>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -598,20 +801,30 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
                 placeholder={t.final.formPlaceholder}
                 aria-invalid={state === "invalid"}
                 aria-describedby="email-help email-consent"
-                className="min-h-13 flex-1 rounded-2xl border-2 border-white/25 bg-white/10 px-5 text-base text-moon placeholder:text-lavender-muted focus:border-lantern focus:outline-none"
+                className="min-h-13 flex-1 rounded-xl border border-story-line bg-story-surface px-5 text-base text-story-ink placeholder:text-story-muted focus:border-story-lantern focus:ring-1 focus:ring-story-lantern focus:outline-none transition-colors"
               />
               <button
                 type="submit"
                 disabled={state === "sending"}
-                className="btn-lantern min-h-13 cursor-pointer rounded-2xl px-7 font-display text-lg font-semibold disabled:cursor-wait disabled:opacity-60"
+                className="btn-story-primary min-h-13 cursor-pointer rounded-xl px-7 text-base font-bold whitespace-nowrap shrink-0 disabled:cursor-wait disabled:opacity-60"
               >
                 {state === "sending" ? t.final.sending : t.final.formCta}
               </button>
             </div>
-            <p id="email-help" aria-live="polite" className={`mt-3 text-sm ${msg ? "font-semibold text-[#fda4af]" : "text-lavender"}`}>
+            <p
+              id="email-help"
+              aria-live="polite"
+              className={`mt-3 text-sm font-semibold ${
+                msg
+                  ? state === "invalid" || state === "fail"
+                    ? "text-story-lantern"
+                    : "text-story-luma"
+                  : "text-story-muted"
+              }`}
+            >
               {msg ?? t.final.formNote}
             </p>
-            <p id="email-consent" className="mt-3 text-sm leading-relaxed text-lavender-muted">
+            <p id="email-consent" className="mt-3 text-xs leading-relaxed text-story-muted/80 text-pretty">
               {t.final.consent}
             </p>
           </form>
@@ -625,12 +838,25 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
 
 function Footer({ t }: { t: Dict }) {
   return (
-    <footer className="bg-[#0b0820] pb-28 pt-12 text-sm text-lavender md:pb-12">
-      <Container className="space-y-4">
-        <Logo />
-        <p className="font-semibold text-moon">{t.footer.pilot}</p>
-        <p className="max-w-3xl leading-relaxed">{t.footer.disclaimer}</p>
-        <p>{t.footer.event}</p>
+    <footer className="border-t border-story-line bg-story-deep pb-28 pt-14 text-sm text-story-muted md:pb-14">
+      <Container className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-4">
+          <Logo />
+          <p className="font-bold text-story-ink">{t.footer.pilot}</p>
+          <p className="max-w-md leading-relaxed text-story-muted text-pretty">
+            {t.footer.disclaimer}
+          </p>
+        </div>
+        <div className="flex flex-col gap-6 md:items-end">
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-story-muted">
+            <a className="transition-colors hover:text-story-ink" href="#how">{t.nav.how}</a>
+            <a className="transition-colors hover:text-story-ink" href="#offer">{t.nav.offer}</a>
+            <a className="transition-colors hover:text-story-ink" href="#privacy">{t.nav.privacy}</a>
+            <a className="transition-colors hover:text-story-ink" href="#faq">{t.nav.faq}</a>
+            <a className="transition-colors hover:text-story-ink" href="/login">{t.nav.login}</a>
+          </nav>
+          <p className="text-xs text-story-muted/80 md:text-right">{t.footer.event}</p>
+        </div>
       </Container>
     </footer>
   );
@@ -658,7 +884,7 @@ function StickyCta({ t }: { t: Dict }) {
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-dusk-deep/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-story-line bg-story-night/95 p-3 backdrop-blur-md transition-transform duration-300 md:hidden ${
         show ? "translate-y-0" : "translate-y-full"
       }`}
       aria-hidden={!show}
@@ -666,7 +892,7 @@ function StickyCta({ t }: { t: Dict }) {
       <a
         href="#start"
         tabIndex={show ? 0 : -1}
-        className="btn-lantern flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl font-display text-lg font-semibold"
+        className="btn-story-primary flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-bold shadow-lg"
       >
         {t.sticky}
         <Arrow className="size-5" />
