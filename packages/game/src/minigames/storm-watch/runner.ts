@@ -140,7 +140,7 @@ export class StormWatchRunner {
     if (this.state === "practice-intro") {
       // Prevent accidental double-tap message skipping: child must view instruction for at least MIN_READ_DELAY_MS
       if (relT - this.stateStartTime < MIN_READ_DELAY_MS) return;
-      this.transitionTo("practice-trial-isi");
+      this.transitionTo("practice-trial-isi", relT);
       return;
     }
 
@@ -153,13 +153,13 @@ export class StormWatchRunner {
 
     if (this.state === "between") {
       if (relT - this.stateStartTime < 1000) return;
-      this.transitionTo("block-intro");
+      this.transitionTo("block-intro", relT);
       return;
     }
 
     if (this.state === "block-intro") {
       if (relT - this.stateStartTime < 1000) return;
-      this.transitionTo("trial-isi");
+      this.transitionTo("trial-isi", relT);
       return;
     }
 

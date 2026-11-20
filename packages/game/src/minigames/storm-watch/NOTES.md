@@ -2,21 +2,27 @@
 
 - **Specification**: FR-60 in `docs/02-specification-cahier-des-charges.md` and research in `research/04-game-design-symptom-mapping.md` section 5.
 - **Constructs Observed**:
-  - IA8 (easily distracted): Distractor cost in Block B (crossing cartoon birds and rolling thunder) vs Block A (calm).
-  - IA3 (does not seem to listen): Auditory-cued go trials (25% cued by synthesized owl hoot instead of visual light).
+  - IA8 (easily distracted): distractor cost in the storm block (crossing birds, lightning and thunder, rain) vs the calm block.
+  - IA3 (does not seem to listen): sound-only go trials (25% of go trials are an owl hoot instead of a firefly).
+- **The scene** (`forest.ts`, `creatures.ts`, `scene.ts`, `ui.ts`): one big tree with four leaf perches and an owl asleep in its hollow, in the Lantern Watch look (toon shading, outlines, Luma, the Lantern Watch firefly).
+  - Go: a glowing firefly on a perch. Tap it.
+  - No-go: a dark cricket on a perch. Do not tap.
+  - Go (sound only): the owl hoots. Tap the owl. Nothing on screen changes at the hoot: the owl is always there, asleep, and only opens its eyes after it has been tapped. A visual change at the hoot would turn the listening trial into one more visual trial.
+  - `treeLocation` (0 to 7 in the schedule) is taken modulo the four perches.
+- **Calm vs storm**: the calm block has no distractor of any kind (clear sky, no rain, no birds, no lightning). The storm block fades in clouds, rain and wind, and birds and lightning come only from the runner's seeded `onDistractorTrigger`. Birds fly behind the tree or below the lowest perch, so a distractor never covers a target.
 - **Trial Structure**:
-  - 2 Blocks x 40 trials = 80 total.
-  - Go probability = 0.8 (32 Go + 8 No-Go per block).
-  - In each block of 32 Go trials: 24 visual fireflies, 8 audio-cued owl hoots.
-  - Fixed counts shuffled via seeded PRNG (`mulberry32`).
-  - Block order counterbalanced by seed.
-- **Timing & Precision**:
-  - Stimulus onset measured by rAF timestamp of the drawing frame.
-  - Response captured via native `pointerdown` `event.timeStamp` (only primary pointers).
-  - Never uses `click`.
-  - Stimulus duration: 500 ms; ISI: 900-1500 ms uniform.
-- **Child-Friendly UX (SKILL.md)**:
-  - No failure sounds or red screens.
-  - Same pleasant two-tone chime for every hit.
-  - 4 practice trials with Luma guidance before scored trials.
-  - Celebratory completion screen.
+  - 2 blocks x 40 trials = 80 total. Go probability 0.8 (32 go + 8 no-go per block); of the 32 go trials, 24 fireflies and 8 hoots.
+  - Fixed counts shuffled with a seeded PRNG (`mulberry32`). Block order counterbalanced by seed (odd seed: storm first).
+- **Timing & Precision** (values live in `logic.ts`):
+  - Stimulus 900 ms; ISI 1200 to 2000 ms uniform; response window = stimulus + 400 ms; taps under 150 ms count as anticipations.
+  - The creature is placed at full size inside `runner.frame(ts)` and drawn by the same animation frame.
+  - Responses come from native `pointerdown` (`event.timeStamp`, primary pointer only). Never `click`.
+  - Nothing is allocated per trial: birds, flights and particles are pooled.
+- **Child-Friendly UX (FR-05, SKILL.md)**:
+  - No failure sound, no shake, no red screen, no visible count: a tapped cricket just hops away; the jar only glows brighter.
+  - The same chime for every catch. 4 practice trials with Luma before the scored trials. A celebration at the end.
+  - Lightning is at most two soft pulses per strike; `prefers-reduced-motion` turns off sway, drift, the bolt and the pulses.
+- **Known gaps**:
+  - The result's `params.isi_ms_min/max` are hardcoded to 800/1300 in `runner.ts`; the real values are 1200/2000 (`logic.ts`).
+  - Texts are English only and not yet reviewed by the clinical lead (the owl instruction and the cricket feedback line were reworded for the redesign).
+  - With the sound off, every hoot trial is an omission. The game does not detect a muted device.

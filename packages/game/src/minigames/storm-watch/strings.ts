@@ -12,7 +12,7 @@ export const STRINGS = {
   practiceGo1: "Look, a glowing Golden Firefly! Tap it to catch it in the jar!",
   practiceGo2: "Great catch! Catch another glowing firefly!",
   practiceNogo: "Careful! A Shadow Cricket! DO NOT tap crickets—let them crawl away.",
-  practiceAudio: "Listen closely! When the Owl hoots 'whoo-whoo', tap the glowing light!",
+  practiceAudio: "Listen closely! When the owl hoots 'whoo-whoo', tap the sleepy owl!",
   practiceDone: "Awesome! You're ready for the real Storm Watch!",
 
   // Blocks
@@ -28,12 +28,12 @@ export const STRINGS = {
   // Tips for clarity
   goldenFireflyTip: "GLOWING FIREFLY = TAP!",
   shadowCricketTip: "DARK CRICKET = DON'T TAP!",
-  owlTip: "OWL HOOT = TAP!",
+  owlTip: "OWL HOOT = TAP THE OWL!",
 
   // Practice feedback
   feedbackHit: "Great catch! Added to your jar! 🌟",
   feedbackNogoSuccess: "Super! You let the cricket crawl away safely! 🦗✨",
-  feedbackNogoFail: "Oops! Crickets don't go in the jar—leave them alone! 🦗",
+  feedbackNogoFail: "Crickets stay in the forest. Let them hop away! 🦗",
   feedbackOmission: "It flew away! Tap quickly next time! ⚡",
   jarCounterLabel: "Fireflies in Jar",
 } as const;

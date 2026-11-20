@@ -19,7 +19,7 @@ export default function StormWatchCanvas({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // Dev query parameters (?seed=, ?trials=, ?skipPractice=1) only apply in development builds.
+    // Dev query parameters (?seed=, ?trials=, ?skipPractice=1, ?stim=<ms>) only apply in development builds.
     const q =
       process.env.NODE_ENV === "development"
         ? new URLSearchParams(window.location.search)
@@ -27,6 +27,7 @@ export default function StormWatchCanvas({
     const seed = q.get("seed");
     const trials = q.get("trials");
     const skipPractice = q.get("skipPractice") === "1";
+    const stim = q.get("stim");
 
     // In development mode, use 8 trials per block and default to seed 1043 (odd -> storm first)
     // so testers experience birds, thunder, lightning, and raindrops immediately without a long wait.
@@ -41,6 +42,7 @@ export default function StormWatchCanvas({
         seed: effectiveSeed,
         trialsPerBlock: effectiveTrials,
         skipPractice,
+        stimulusMs: stim ? Number(stim) : undefined,
         onComplete: (r) => cb.current(r),
       }),
       PLAY_STRINGS.unavailable,

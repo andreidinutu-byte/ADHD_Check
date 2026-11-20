@@ -1,34 +1,49 @@
-// Storm Watch in 3D (three.js). Browser only: imported lazily by mount.ts.
-// High contrast, cartoon style, organic tree perches (no artificial rings), catch fly-away.
-
+// Storm Watch in 3D (three.js), in the same storybook look as Lantern Watch: toon shading, dark outlines,
+// Luma and the Lantern Watch firefly. Browser only: imported lazily by mount.ts.
+//
+// The clearing: one big tree with four leaf perches and an owl asleep in its hollow. A firefly on a perch is
+// "go", a cricket is "no-go", and the owl's hoot is the sound-only "go" (tap the owl): nothing on screen
+// changes when it hoots, so only listening can catch it. One block is a calm night; in the other a storm
+// rolls in (clouds, rain, wind) and birds and lightning distract.
+//
+// Timing: one requestAnimationFrame loop. Each callback first calls runner.frame(ts); when a stimulus is due the
+// runner calls onStimulusOnset inside that call, which places the creature at full size, and the same callback
+// then renders, so the creature is on screen in the frame the runner timestamps. Responses come from a native
+// pointerdown listener (event.timeStamp, never click). Everything else here is decoration and never feeds the
+// measurement: nothing is allocated per trial (birds, flights and particles are pooled).
 import {
-  AmbientLight,
-  BoxGeometry,
-  CircleGeometry,
   Color,
-  ConeGeometry,
-  CylinderGeometry,
+  DataTexture,
   DirectionalLight,
-  DoubleSide,
-  Group,
+  Fog,
   HemisphereLight,
-  Mesh,
-  MeshBasicMaterial,
-  MeshLambertMaterial,
+  type Material,
+  type Mesh,
+  NearestFilter,
   PerspectiveCamera,
   PointLight,
-  RingGeometry,
+  type PointsMaterial,
+  type Float32BufferAttribute,
+  RedFormat,
   Scene,
-  SphereGeometry,
+  Sprite,
+  SpriteMaterial,
+  AdditiveBlending,
   Vector3,
   WebGLRenderer,
+  type Group,
 } from "three";
 import { isPrimaryPointer } from "../../pointer";
-import { StormWatchAudio } from "./audio";
 import { buildLuma, makeOutlineMaterial, type LumaRig } from "../bridge-wait/luma";
-import { StormWatchRunner } from "./runner";
+import { Particles } from "../bridge-wait/scene";
+import { buildFirefly } from "../lantern-watch/props";
+import { StormWatchAudio } from "./audio";
+import { BIRD_COLORS, buildBird, buildCricket, buildOwl, type Bird } from "./creatures";
+import { buildForest, OWL_CENTRE, OWL_FEET, type Forest } from "./forest";
+import { mulberry32 } from "./logic";
+import { StormWatchRunner, type RunState } from "./runner";
 import { STRINGS } from "./strings";
-import type { DistractorType, ScheduledTrial, StormWatchResult, TrialType } from "./types";
+import type { BlockKind, StormWatchResult, TrialType } from "./types";
 import { buildUi } from "./ui";
 
 export interface SceneOptions {
@@ -39,1073 +54,839 @@ export interface SceneOptions {
   onComplete?: (result: StormWatchResult) => void;
 }
 
-// 8 Organic perch locations in FRONT of tree foliage (Z: 0.45 to 0.55) so they are NEVER hidden or occluded
-const NATURAL_TREE_PERCHES: [number, number, number][] = [
-  [-2.0, 1.55, 0.45],  // 0: Far-left tree branch
-  [-1.2, 2.05, 0.50],  // 1: Left high canopy branch
-  [-0.4, 1.40, 0.55],  // 2: Left-center mid branch
-  [ 0.1, 2.15, 0.50],  // 3: Center high canopy branch
-  [ 0.7, 1.35, 0.55],  // 4: Right-center mid branch
-  [ 1.3, 1.95, 0.50],  // 5: Right high branch
-  [ 2.0, 1.45, 0.45],  // 6: Far-right tree branch
-  [-1.0, 1.30, 0.55],  // 7: Mid-left branch (well above jars and Luma)
-];
+const FLIGHT_MS = 620;
+const FIREFLY_SCALE = 1.85;
+const CRICKET_SCALE = 1.28;
+const LIGHT_ON = 3.4;
+/** World radius of a tap target (perch leaf, owl). On screen it is never smaller than MIN_HIT_PX. */
+const HIT_RADIUS = 0.62;
+const MIN_HIT_PX = 36;
+const VIEW_DIR = new Vector3(0, 0.12, 1).normalize();
 
-export function createStormWatchScene(parent: HTMLElement, opts: SceneOptions = {}) {
-  let destroyed = false;
-  let rafId = 0;
+// Luma and the jar stump: front left in landscape; in portrait they stand side by side in front of the tree,
+// nearer the camera, so they fill the lower part of a tall screen and never reach up to a perch.
+const LUMA_LANDSCAPE = new Vector3(-2.75, 0, 2.3);
+const LUMA_PORTRAIT = new Vector3(-0.72, 0, 6.2);
+const JAR_LANDSCAPE = new Vector3(-1.5, 0, 2.85);
+const JAR_PORTRAIT = new Vector3(0.78, 0, 6.5);
 
-  const audio = new StormWatchAudio();
+const CALM_FOG = new Color(0x8e68b4);
+const STORM_FOG = new Color(0x4a5484);
+const CALM_SKYLIGHT = new Color(0xc4ccff);
+const STORM_SKYLIGHT = new Color(0x9fb0e6);
+
+const clamp01 = (t: number) => Math.min(Math.max(t, 0), 1);
+const easeOut = (t: number) => 1 - Math.pow(1 - clamp01(t), 3);
+const easeInOut = (t: number) => {
+  const x = clamp01(t);
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+};
+const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+
+type LumaMode = "idle" | "wave" | "talk" | "hop" | "celebrate" | "rest";
+
+interface ActiveStimulus {
+  type: TrialType;
+  /** World centre of the thing to tap (a perch, or the owl for a hoot). */
+  target: Vector3;
+  start: number;
+  practice: boolean;
+  responded: boolean;
+}
+
+interface BirdFlight {
+  bird: Bird;
+  active: boolean;
+  dir: number;
+  speed: number;
+  y: number;
+  phase: number;
+  delay: number;
+}
+
+export function createStormWatchScene(parent: HTMLElement, opts: SceneOptions = {}): { destroy: () => void } {
+  const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const owner = Math.random().toString(36).slice(2);
+  parent.dataset.swOwner = owner;
+  const seed = opts.seed ?? 1042;
+  const blockKinds: BlockKind[] = (seed & 1) === 1 ? ["storm", "calm"] : ["calm", "storm"]; // same rule as buildSchedule
+  const rnd = mulberry32(seed ^ 0x5eed);
+
   const ui = buildUi(parent);
+  const audio = new StormWatchAudio();
 
-  // Setup Three.js scene
-  const scene = new Scene();
-
-  const camera = new PerspectiveCamera(45, 1, 0.1, 100);
-  camera.position.set(0, 1.45, 5.2);
-  camera.lookAt(new Vector3(0, 1.2, 0));
-
-  const renderer = new WebGLRenderer({
-    antialias: true,
-    alpha: true,
-    powerPreference: "high-performance",
-  });
+  let renderer: WebGLRenderer;
+  try {
+    renderer = new WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+  } catch (err) {
+    audio.close();
+    ui.destroy();
+    throw err;
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.setSize(parent.clientWidth || 800, parent.clientHeight || 600);
-  ui.root.insertBefore(renderer.domElement, ui.root.firstChild);
+  renderer.setClearColor(0x000000, 0);
+  const canvas = renderer.domElement;
+  // Above the sky layers, below the UI layer (the last child of the root).
+  ui.root.insertBefore(canvas, ui.root.lastElementChild);
 
-  // Vibrant high-contrast lighting
-  const hemiLight = new HemisphereLight(0xdbe6ff, 0x4a3b7a, 2.7);
-  scene.add(hemiLight);
+  const scene = new Scene();
+  const fog = new Fog(CALM_FOG.getHex(), 26, 75);
+  scene.fog = fog;
+  // near 0.5 / far 160: enough depth precision that close surfaces never flicker.
+  const camera = new PerspectiveCamera(38, 1, 0.5, 160);
 
-  const moonLight = new DirectionalLight(0xffffff, 2.4);
-  moonLight.position.set(4, 9, 5);
-  scene.add(moonLight);
-
-  const ambientFill = new AmbientLight(0x7365a8, 1.2);
-  scene.add(ambientFill);
-
-  // Stimulus localized point light (lights up surrounding tree leaves when firefly/owl appears)
-  const stimulusPointLight = new PointLight(0xffea00, 0, 9);
-  scene.add(stimulusPointLight);
-
-  // Forest ground (lush cartoon palette)
-  const groundGeo = new CylinderGeometry(14, 14, 0.4, 32);
-  const groundMat = new MeshLambertMaterial({ color: 0x324470 });
-  const ground = new Mesh(groundGeo, groundMat);
-  ground.position.y = -0.35;
-  scene.add(ground);
-
-  // Forest trees with lush cartoon branches
-  const treeGroup = new Group();
-  const trunkGeo = new CylinderGeometry(0.2, 0.3, 3.0, 8);
-  const foliageGeo = new ConeGeometry(1.2, 2.7, 8);
-  const trunkMat = new MeshLambertMaterial({ color: 0x4c3c6e });
-  const foliageMat = new MeshLambertMaterial({ color: 0x3b4985 });
-
-  // 7 distinct trees across the clearing
-  const TREE_CONFIGS = [
-    { x: -2.3, z: -1.0, scale: 1.1 },
-    { x: -1.4, z: -1.4, scale: 1.2 },
-    { x: -0.5, z: -1.7, scale: 1.0 },
-    { x: 0.5, z: -1.6, scale: 1.15 },
-    { x: 1.3, z: -1.2, scale: 1.05 },
-    { x: 2.2, z: -1.1, scale: 1.2 },
-    { x: 3.1, z: -1.5, scale: 1.1 },
-  ];
-
-  TREE_CONFIGS.forEach((cfg) => {
-    const t = new Group();
-    const trunk = new Mesh(trunkGeo, trunkMat);
-    trunk.position.y = 1.4;
-    const foliage = new Mesh(foliageGeo, foliageMat);
-    foliage.position.y = 2.7;
-    t.add(trunk, foliage);
-    t.position.set(cfg.x, -0.2, cfg.z);
-    t.scale.setScalar(cfg.scale);
-    treeGroup.add(t);
-  });
-  scene.add(treeGroup);
-
-  // Target stimulus group (moves to natural perches)
-  const stimulusGroup = new Group();
-
-  // High-contrast circular perch target plate (wooden rim & dark contrast disc & wooden branch log)
-  const perchPlateGroup = new Group();
-
-  // Deep dark night circular backing plate
-  const discGeo = new CircleGeometry(0.50, 32);
-  const discMat = new MeshBasicMaterial({ color: 0x140e24 });
-  const plateDisc = new Mesh(discGeo, discMat);
-
-  // Outer frame rim
-  const rimGeo = new RingGeometry(0.50, 0.60, 32);
-  const rimMat = new MeshBasicMaterial({ color: 0x3d271d });
-  const plateRim = new Mesh(rimGeo, rimMat);
-
-  // Dynamic accent ring (changes color: gold for firefly, ruby-red for cricket, amber for owl)
-  const accentGeo = new RingGeometry(0.46, 0.49, 32);
-  const accentMat = new MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.75 });
-  const plateAccent = new Mesh(accentGeo, accentMat);
-
-  // Dynamic outer pulse aura ring (changes color: gold / red / amber)
-  const pulseGeo = new RingGeometry(0.60, 0.74, 32);
-  const pulseMat = new MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.45 });
-  const platePulse = new Mesh(pulseGeo, pulseMat);
-
-  // Natural wooden branch log right beneath the creature
-  const logGeo = new CylinderGeometry(0.08, 0.08, 0.95, 12);
-  const logMat = new MeshBasicMaterial({ color: 0x5a3d28 });
-  const plateLog = new Mesh(logGeo, logMat);
-  plateLog.rotation.z = Math.PI / 2;
-  plateLog.position.set(0, -0.38, 0.04);
-
-  // Small moss clump on the branch
-  const moss = new Mesh(new SphereGeometry(0.07, 8, 8), new MeshBasicMaterial({ color: 0x3d7a46 }));
-  moss.position.set(0.24, -0.34, 0.10);
-  moss.scale.set(1.4, 0.7, 1.0);
-
-  perchPlateGroup.add(plateDisc, plateRim, plateAccent, platePulse, plateLog, moss);
-  perchPlateGroup.position.set(0, 0, -0.06);
-  perchPlateGroup.visible = false;
-  stimulusGroup.add(perchPlateGroup);
-
-  // 1. Golden Firefly (Go) - radiant, neon lime-yellow glowing fairy bug
-  const fireflyGroup = new Group();
-
-  // Emissive glowing abdomen core (pure lime-gold, no murky Lambert lighting)
-  const fireflyCore = new Mesh(
-    new SphereGeometry(0.24, 16, 16),
-    new MeshBasicMaterial({ color: 0xeeff41 }),
-  );
-  fireflyCore.position.set(0, -0.06, 0.04);
-  fireflyCore.scale.set(0.9, 1.15, 0.9);
-
-  // Radiant outer glow halo
-  const fireflyGlow = new Mesh(
-    new SphereGeometry(0.52, 16, 16),
-    new MeshBasicMaterial({ color: 0xffea00, transparent: true, opacity: 0.55 }),
-  );
-  fireflyGlow.position.set(0, -0.06, 0.04);
-
-  // Cute golden-yellow head
-  const fireflyHead = new Mesh(
-    new SphereGeometry(0.14, 14, 14),
-    new MeshBasicMaterial({ color: 0xffd600 }),
-  );
-  fireflyHead.position.set(0, 0.16, 0.06);
-
-  // Friendly black eyes with white sparkle catchlights
-  const fEyeL = new Mesh(new SphereGeometry(0.038, 8, 8), new MeshBasicMaterial({ color: 0x140e2b }));
-  fEyeL.position.set(-0.065, 0.18, 0.18);
-  const fEyeR = fEyeL.clone();
-  fEyeR.position.x = 0.065;
-  const fSparkleL = new Mesh(new SphereGeometry(0.014, 6, 6), new MeshBasicMaterial({ color: 0xffffff }));
-  fSparkleL.position.set(-0.055, 0.195, 0.21);
-  const fSparkleR = fSparkleL.clone();
-  fSparkleR.position.x = 0.075;
-
-  // Fluttering fairy wings (translucent cyan-white crystal wings)
-  const wingGeo = new SphereGeometry(0.18, 12, 12);
-  const wingMat = new MeshBasicMaterial({ color: 0xe0f7fa, transparent: true, opacity: 0.82 });
-  const fireflyWingL = new Mesh(wingGeo, wingMat);
-  fireflyWingL.scale.set(0.35, 1.4, 0.1);
-  fireflyWingL.position.set(-0.20, 0.10, 0.02);
-  fireflyWingL.rotation.z = -0.35;
-  const fireflyWingR = fireflyWingL.clone();
-  fireflyWingR.position.x = 0.20;
-  fireflyWingR.rotation.z = 0.35;
-
-  // Antennae with glowing yellow bulbs on tips
-  const antGeo = new CylinderGeometry(0.014, 0.014, 0.22, 6);
-  const antMat = new MeshBasicMaterial({ color: 0xffd600 });
-  const antL = new Mesh(antGeo, antMat);
-  antL.rotation.z = -0.42;
-  antL.position.set(-0.08, 0.31, 0.06);
-  const antR = antL.clone();
-  antR.rotation.z = 0.42;
-  antR.position.x = 0.08;
-
-  const antBulbGeo = new SphereGeometry(0.04, 8, 8);
-  const antBulbMat = new MeshBasicMaterial({ color: 0xffff00 });
-  const bulbL = new Mesh(antBulbGeo, antBulbMat);
-  bulbL.position.set(-0.16, 0.40, 0.06);
-  const bulbR = bulbL.clone();
-  bulbR.position.x = 0.16;
-
-  fireflyGroup.add(fireflyCore, fireflyGlow, fireflyHead, fEyeL, fEyeR, fSparkleL, fSparkleR, fireflyWingL, fireflyWingR, antL, antR, bulbL, bulbR);
-  fireflyGroup.visible = false;
-  stimulusGroup.add(fireflyGroup);
-
-  // 2. Shadow Cricket (No-Go) - spiky obsidian-black insect with GLOWING RED DANGER EYES
-  const cricketGroup = new Group();
-
-  // Pure dark obsidian carapace (MeshBasicMaterial so no murky Lambert wash)
-  const cricketMat = new MeshBasicMaterial({ color: 0x16131f });
-  const cricketAccentMat = new MeshBasicMaterial({ color: 0xef4444 }); // Danger ruby accents
-
-  // Segmented abdomen & thorax
-  const cricketBody = new Mesh(new CylinderGeometry(0.09, 0.12, 0.44, 8), cricketMat);
-  cricketBody.rotation.z = 0.35;
-  cricketBody.position.set(0.04, 0.02, 0.04);
-
-  // Red danger stripe across carapace
-  const cStripe = new Mesh(new CylinderGeometry(0.095, 0.11, 0.06, 8), cricketAccentMat);
-  cStripe.rotation.z = 0.35;
-  cStripe.position.set(0.04, 0.08, 0.04);
-
-  // Dark spiky head
-  const cricketHead = new Mesh(new SphereGeometry(0.12, 8, 8), cricketMat);
-  cricketHead.position.set(-0.18, 0.18, 0.05);
-
-  // VIVID GLOWING RED DANGER EYES
-  const redEyeMat = new MeshBasicMaterial({ color: 0xff0033 });
-  const redEyeGlowMat = new MeshBasicMaterial({ color: 0xff1744, transparent: true, opacity: 0.5 });
-  const cEyeL = new Mesh(new SphereGeometry(0.05, 8, 8), redEyeMat);
-  cEyeL.position.set(-0.24, 0.22, 0.13);
-  const cEyeGlowL = new Mesh(new SphereGeometry(0.09, 8, 8), redEyeGlowMat);
-  cEyeGlowL.position.copy(cEyeL.position);
-
-  const cEyeR = new Mesh(new SphereGeometry(0.05, 8, 8), redEyeMat);
-  cEyeR.position.set(-0.16, 0.25, 0.15);
-  const cEyeGlowR = new Mesh(new SphereGeometry(0.09, 8, 8), redEyeGlowMat);
-  cEyeGlowR.position.copy(cEyeR.position);
-
-  // Long sweeping antennae with danger red tips
-  const cAntGeo = new CylinderGeometry(0.012, 0.008, 0.42, 6);
-  const cAntMat = new MeshBasicMaterial({ color: 0x221c30 });
-  const cAntL = new Mesh(cAntGeo, cAntMat);
-  cAntL.rotation.z = -0.55;
-  cAntL.position.set(-0.28, 0.38, 0.08);
-  const cAntTipL = new Mesh(new SphereGeometry(0.024, 6, 6), redEyeMat);
-  cAntTipL.position.set(-0.46, 0.56, 0.08);
-
-  const cAntR = cAntL.clone();
-  cAntR.rotation.z = -0.22;
-  cAntR.position.set(-0.24, 0.38, -0.02);
-  const cAntTipR = new Mesh(new SphereGeometry(0.024, 6, 6), redEyeMat);
-  cAntTipR.position.set(-0.32, 0.58, -0.02);
-
-  // Prominent spiky bent hind jumping legs
-  const legGeo = new CylinderGeometry(0.022, 0.016, 0.36, 6);
-  const legMat = new MeshBasicMaterial({ color: 0x1f182c });
-  const cLegL = new Mesh(legGeo, legMat);
-  cLegL.position.set(0.18, -0.02, 0.15);
-  cLegL.rotation.x = 0.7;
-  cLegL.rotation.z = -0.7;
-  const cLegR = cLegL.clone();
-  cLegR.position.z = -0.15;
-  cLegR.rotation.x = -0.7;
-
-  cricketGroup.add(cricketBody, cStripe, cricketHead, cEyeL, cEyeGlowL, cEyeR, cEyeGlowR, cAntL, cAntTipL, cAntR, cAntTipR, cLegL, cLegR);
-  cricketGroup.visible = false;
-  stimulusGroup.add(cricketGroup);
-
-  // 3. Night Owl (Go-Audio) - warm feathered cartoon chestnut owl with white chest and big golden eyes
-  const owlGroup = new Group();
-
-  // Warm chestnut-brown feathered body
-  const owlBodyMat = new MeshBasicMaterial({ color: 0x8b4513 });
-  const owlBody = new Mesh(new SphereGeometry(0.25, 16, 16), owlBodyMat);
-  owlBody.scale.set(1.0, 1.15, 0.9);
-  owlBody.position.set(0, -0.02, 0.04);
-
-  // Soft cream/buff feathered chest patch
-  const chestMat = new MeshBasicMaterial({ color: 0xfef3c7 });
-  const owlChest = new Mesh(new SphereGeometry(0.18, 14, 14), chestMat);
-  owlChest.position.set(0, -0.06, 0.14);
-  owlChest.scale.set(0.85, 1.0, 0.5);
-
-  // Cute brown feather chevrons on chest
-  const speckMat = new MeshBasicMaterial({ color: 0x92400e });
-  const speck1 = new Mesh(new ConeGeometry(0.02, 0.04, 3), speckMat);
-  speck1.position.set(0, -0.02, 0.22);
-  speck1.rotation.z = Math.PI;
-  const speck2 = speck1.clone();
-  speck2.position.set(-0.06, -0.08, 0.21);
-  const speck3 = speck1.clone();
-  speck3.position.set(0.06, -0.08, 0.21);
-
-  // Heart-shaped pale cream facial disk
-  const faceMat = new MeshBasicMaterial({ color: 0xfffbeb });
-  const faceL = new Mesh(new SphereGeometry(0.12, 12, 12), faceMat);
-  faceL.position.set(-0.075, 0.12, 0.14);
-  faceL.scale.set(1.0, 0.9, 0.35);
-  const faceR = faceL.clone();
-  faceR.position.x = 0.075;
-
-  // Feathery ear tufts (horns) on top of head
-  const tuftMat = new MeshBasicMaterial({ color: 0x78350f });
-  const tuftGeo = new ConeGeometry(0.065, 0.16, 4);
-  const tuftL = new Mesh(tuftGeo, tuftMat);
-  tuftL.position.set(-0.14, 0.30, 0.06);
-  tuftL.rotation.z = 0.35;
-  const tuftR = tuftL.clone();
-  tuftR.position.x = 0.14;
-  tuftR.rotation.z = -0.35;
-
-  // Folded side wings
-  const oWingMat = new MeshBasicMaterial({ color: 0x6e2c05 });
-  const oWingGeo = new SphereGeometry(0.18, 10, 10);
-  const oWingL = new Mesh(oWingGeo, oWingMat);
-  oWingL.scale.set(0.4, 1.1, 0.6);
-  oWingL.position.set(-0.24, -0.02, 0.05);
-  oWingL.rotation.z = -0.25;
-  const oWingR = oWingL.clone();
-  oWingR.position.x = 0.24;
-  oWingR.rotation.z = 0.25;
-
-  // Big nocturnal owl eyes: amber rim + large glowing golden-yellow iris + black pupil + shiny catchlight!
-  const eyeRimMat = new MeshBasicMaterial({ color: 0xd97706 });
-  const oRimL = new Mesh(new SphereGeometry(0.082, 12, 12), eyeRimMat);
-  oRimL.position.set(-0.08, 0.12, 0.18);
-  const oRimR = oRimL.clone();
-  oRimR.position.x = 0.08;
-
-  const oIrisMat = new MeshBasicMaterial({ color: 0xffcc00 }); // Brilliant golden-yellow iris
-  const oIrisL = new Mesh(new SphereGeometry(0.072, 12, 12), oIrisMat);
-  oIrisL.position.set(-0.08, 0.12, 0.19);
-  const oIrisR = oIrisL.clone();
-  oIrisR.position.x = 0.08;
-
-  const oPupilMat = new MeshBasicMaterial({ color: 0x0f0b1e }); // Large glossy nocturnal pupil
-  const oPupilL = new Mesh(new SphereGeometry(0.042, 10, 10), oPupilMat);
-  oPupilL.position.set(-0.08, 0.12, 0.23);
-  const oPupilR = oPupilL.clone();
-  oPupilR.position.x = 0.08;
-
-  const oCatchMat = new MeshBasicMaterial({ color: 0xffffff }); // Catchlight
-  const oCatchL = new Mesh(new SphereGeometry(0.016, 6, 6), oCatchMat);
-  oCatchL.position.set(-0.065, 0.14, 0.26);
-  const oCatchR = oCatchL.clone();
-  oCatchR.position.x = 0.095;
-
-  // Vibrant curved golden-orange beak
-  const beakMat = new MeshBasicMaterial({ color: 0xf59e0b });
-  const beak = new Mesh(new ConeGeometry(0.05, 0.14, 6), beakMat);
-  beak.rotation.x = Math.PI * 0.65;
-  beak.position.set(0, 0.04, 0.24);
-
-  owlGroup.add(owlBody, owlChest, speck1, speck2, speck3, faceL, faceR, tuftL, tuftR, oWingL, oWingR, oRimL, oRimR, oIrisL, oIrisR, oPupilL, oPupilR, oCatchL, oCatchR, beak);
-  owlGroup.visible = false;
-  stimulusGroup.add(owlGroup);
-
-  scene.add(stimulusGroup);
-
-  // Luma Rig on bottom-left, standing beside the collection jars (no clipping!)
+  const grad = new DataTexture(new Uint8Array([95, 165, 220, 255]), 4, 1, RedFormat);
+  grad.minFilter = grad.magFilter = NearestFilter;
+  grad.needsUpdate = true;
   const outlineMat = makeOutlineMaterial();
-  const luma: LumaRig = buildLuma(null as any, outlineMat);
-  luma.root.position.set(-1.65, -0.22, 0.65);
-  luma.root.scale.setScalar(0.74);
-  luma.root.rotation.y = 0.55;
+
+  const hemi = new HemisphereLight(CALM_SKYLIGHT.getHex(), 0x4a3a6e, 2.1);
+  scene.add(hemi);
+  const moonLight = new DirectionalLight(0xfff0dc, 2.2);
+  moonLight.position.set(7, 10, 8);
+  scene.add(moonLight);
+  const rim = new DirectionalLight(0xff9ec8, 0.8);
+  rim.position.set(-8, 4, -6);
+  scene.add(rim);
+
+  const forest: Forest = buildForest(scene, grad, outlineMat);
+  const perches = forest.perches;
+  const station = forest.station;
+
+  const luma: LumaRig = buildLuma(grad, outlineMat);
+  luma.root.scale.setScalar(0.92);
   scene.add(luma.root);
+  const lumaPos = LUMA_LANDSCAPE.clone();
 
-  // Stump Pedestal 1: for Firefly Jar
-  const stump1Group = new Group();
-  const stump1Trunk = new Mesh(
-    new CylinderGeometry(0.22, 0.26, 0.36, 16),
-    new MeshLambertMaterial({ color: 0x5a3d28 }),
-  );
-  const stump1Top = new Mesh(
-    new CylinderGeometry(0.222, 0.222, 0.02, 16),
-    new MeshLambertMaterial({ color: 0x825938 }),
-  );
-  stump1Top.position.y = 0.18;
-  const mossMat = new MeshLambertMaterial({ color: 0x3d7a46 });
-  const moss1 = new Mesh(new SphereGeometry(0.06, 8, 8), mossMat);
-  moss1.position.set(0.16, 0.08, 0.12);
-  moss1.scale.set(1.2, 0.7, 0.9);
-  stump1Group.add(stump1Trunk, stump1Top, moss1);
-  stump1Group.position.set(-0.98, -0.16, 0.95);
-  scene.add(stump1Group);
+  const owl = buildOwl(grad, outlineMat);
+  owl.root.position.copy(OWL_FEET);
+  owl.root.scale.setScalar(1.02);
+  scene.add(owl.root);
 
-  // Jar 1: Firefly Jar (Golden)
-  const fireflyJarGroup = new Group();
-  const fJarBase = new Mesh(
-    new CylinderGeometry(0.18, 0.18, 0.03, 16),
-    new MeshLambertMaterial({ color: 0xb45309 }),
-  );
-  fJarBase.position.y = -0.22;
-  const fJarGlass = new Mesh(
-    new CylinderGeometry(0.15, 0.17, 0.44, 16),
-    new MeshBasicMaterial({ color: 0xbbf2f6, transparent: true, opacity: 0.28, depthWrite: false }),
-  );
-  const fJarLid = new Mesh(
-    new CylinderGeometry(0.16, 0.16, 0.06, 16),
-    new MeshLambertMaterial({ color: 0xd97706 }),
-  );
-  fJarLid.position.y = 0.23;
-  const fireflyJarLight = new PointLight(0xffea00, 0.9, 3.0);
-  fireflyJarLight.position.y = 0;
-  const fireflyMotesGroup = new Group();
-  fireflyJarGroup.add(fJarBase, fJarGlass, fJarLid, fireflyJarLight, fireflyMotesGroup);
-  fireflyJarGroup.position.set(-0.98, 0.24, 0.95);
-  scene.add(fireflyJarGroup);
+  const firefly = buildFirefly(outlineMat, forest.glow);
+  firefly.root.visible = false;
+  scene.add(firefly.root);
+  const cricket = buildCricket(grad, outlineMat);
+  cricket.root.visible = false;
+  scene.add(cricket.root);
+  const perchLight = new PointLight(0xffc457, 0, 5, 2);
+  scene.add(perchLight);
 
-  // Stump Pedestal 2: for Owl Jar
-  const stump2Group = new Group();
-  const stump2Trunk = new Mesh(
-    new CylinderGeometry(0.22, 0.26, 0.36, 16),
-    new MeshLambertMaterial({ color: 0x5a3d28 }),
-  );
-  const stump2Top = new Mesh(
-    new CylinderGeometry(0.222, 0.222, 0.02, 16),
-    new MeshLambertMaterial({ color: 0x825938 }),
-  );
-  stump2Top.position.y = 0.18;
-  const moss2 = new Mesh(new SphereGeometry(0.06, 8, 8), mossMat);
-  moss2.position.set(-0.14, -0.04, 0.14);
-  moss2.scale.set(1.1, 0.6, 1.0);
-  stump2Group.add(stump2Trunk, stump2Top, moss2);
-  stump2Group.position.set(-0.42, -0.16, 1.05);
-  scene.add(stump2Group);
+  // The little light that flies from the owl to the jar after a caught hoot.
+  const noteMat = new SpriteMaterial({ map: forest.glow, color: 0xffc86b, transparent: true, opacity: 0.95, blending: AdditiveBlending, depthWrite: false });
+  const note = new Sprite(noteMat);
+  note.scale.setScalar(0.55);
+  note.visible = false;
+  scene.add(note);
 
-  // Jar 2: Owl Roost Jar (Amber)
-  const owlJarGroup = new Group();
-  const oJarBase = new Mesh(
-    new CylinderGeometry(0.18, 0.18, 0.03, 16),
-    new MeshLambertMaterial({ color: 0x92400e }),
-  );
-  oJarBase.position.y = -0.22;
-  const oJarGlass = new Mesh(
-    new CylinderGeometry(0.15, 0.17, 0.44, 16),
-    new MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 0.28, depthWrite: false }),
-  );
-  const oJarLid = new Mesh(
-    new CylinderGeometry(0.16, 0.16, 0.06, 16),
-    new MeshLambertMaterial({ color: 0xb45309 }),
-  );
-  oJarLid.position.y = 0.23;
-  const owlJarLight = new PointLight(0xff7700, 0.9, 3.0);
-  owlJarLight.position.y = 0;
-  const owlMotesGroup = new Group();
-  owlJarGroup.add(oJarBase, oJarGlass, oJarLid, owlJarLight, owlMotesGroup);
-  owlJarGroup.position.set(-0.42, 0.24, 1.05);
-  scene.add(owlJarGroup);
+  const birds: BirdFlight[] = BIRD_COLORS.map((c, k) => {
+    const bird = buildBird(grad, outlineMat, c);
+    bird.root.visible = false;
+    bird.root.scale.setScalar(1.15);
+    scene.add(bird.root);
+    return { bird, active: false, dir: 1, speed: 0, y: 0, phase: k * 1.9, delay: 0 };
+  });
 
-  // Collections state: countable items in both jars
-  interface CaughtMote {
-    mesh: Group;
-    baseX: number;
-    baseY: number;
-    baseZ: number;
-    phase: number;
-  }
-  const caughtFireflies: CaughtMote[] = [];
-  const caughtOwls: CaughtMote[] = [];
+  const sparkles = new Particles(220, 0.2, forest.glow);
+  const fireworks = new Particles(800, 0.6, forest.glow);
+  scene.add(sparkles.points, fireworks.points);
+  const SPARK = [new Color(0xffffff), new Color(0xfff0a8), new Color(0xfff27a)];
+  const RISE = [new Color(0xe6ff8a), new Color(0xfff27a), new Color(0xffffff)];
+  const FIRE = [new Color(0xffd66b), new Color(0xfff27a), new Color(0x8ff0d8), new Color(0xffb05a), new Color(0xd2ff8a)];
+  const WHITE = new Color(0xffffff);
 
-  function addCaughtFirefly() {
-    const mote = new Group();
-    const core = new Mesh(
-      new SphereGeometry(0.038, 12, 12),
-      new MeshBasicMaterial({ color: 0xfffa40 }),
-    );
-    const glow = new Mesh(
-      new SphereGeometry(0.072, 12, 12),
-      new MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.5, depthWrite: false }),
-    );
-    const wingL = new Mesh(
-      new SphereGeometry(0.02, 6, 6),
-      new MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }),
-    );
-    wingL.scale.set(0.35, 1.3, 0.2);
-    wingL.position.set(-0.03, 0.02, 0);
-    const wingR = wingL.clone();
-    wingR.position.x = 0.03;
-    mote.add(core, glow, wingL, wingR);
+  // ---- visual state (never used for measurement) ----
+  let mode: LumaMode = "wave";
+  let modeStart = 0;
+  let state: RunState = "intro";
+  let active: ActiveStimulus | null = null;
+  let flight: { from: Vector3; start: number } | null = null;
+  let noteFlight: { start: number } | null = null;
+  let cricketLeave: { start: number; from: Vector3 } | null = null;
+  let owlAwakeFrom = -1;
+  let rehootAt = -1;
+  let bubbleHideAt = -1;
+  let blockIndex = -1;
+  let firstTrialOfBlock = false;
+  let stormTarget = 0;
+  let storm = 0;
+  let strike: { start: number; bolt: number; x: number } | null = null;
+  let caught = 0;
+  let jarGlow = 0;
+  let lidOpen = 0;
+  let decorTarget = 1;
+  let decorLevel = 0;
+  let nextFirework = 0;
+  let nextRise = 0;
+  let happyUntil = 0;
+  let lastTs = 0;
+  let raf = 0;
+  let lost = false;
+  let destroyed = false;
+  let viewW = 1;
+  let viewH = 1;
 
-    const idx = caughtFireflies.length;
-    const phi = idx * 2.39996;
-    const r = 0.025 + ((idx * 0.028) % 0.08);
-    const y = -0.14 + (((idx * 0.045) + 0.02) % 0.28);
-    const x = Math.cos(phi) * r;
-    const z = Math.sin(phi) * r;
-    mote.position.set(x, y, z);
-    fireflyMotesGroup.add(mote);
+  const setMode = (m: LumaMode, ts: number) => {
+    mode = m;
+    modeStart = ts;
+  };
+  const jarMouth = (out: Vector3) => out.copy(station.root.position).add(station.mouth);
+  const lumaHead = (out: Vector3) => out.set(lumaPos.x, lumaPos.y + 1.5, lumaPos.z);
 
-    caughtFireflies.push({
-      mesh: mote,
-      baseX: x,
-      baseY: y,
-      baseZ: z,
-      phase: Math.random() * Math.PI * 2,
-    });
+  const hideStimulus = () => {
+    if (!flight) firefly.root.visible = false;
+    if (!cricketLeave) cricket.root.visible = false;
+    perchLight.intensity = 0;
+    active = null;
+    rehootAt = -1;
+    parent.dataset.stim = "";
+  };
 
-    fireflyJarLight.intensity = Math.min(0.9 + caughtFireflies.length * 0.12, 4.0);
-    ui.setJarCounts(caughtFireflies.length, caughtOwls.length);
-  }
-
-  function addCaughtOwl() {
-    const mote = new Group();
-    const core = new Mesh(
-      new SphereGeometry(0.042, 12, 12),
-      new MeshBasicMaterial({ color: 0xff9900 }),
-    );
-    const glow = new Mesh(
-      new SphereGeometry(0.076, 12, 12),
-      new MeshBasicMaterial({ color: 0xff5500, transparent: true, opacity: 0.5, depthWrite: false }),
-    );
-    // Two bright owl eyes
-    const eyeMat = new MeshBasicMaterial({ color: 0xffffff });
-    const pupMat = new MeshBasicMaterial({ color: 0x140e2b });
-    const eyeL = new Mesh(new SphereGeometry(0.014, 6, 6), eyeMat);
-    eyeL.position.set(-0.014, 0.01, 0.032);
-    const eyeR = eyeL.clone();
-    eyeR.position.x = 0.014;
-    const pL = new Mesh(new SphereGeometry(0.007, 6, 6), pupMat);
-    pL.position.set(-0.014, 0.01, 0.042);
-    const pR = pL.clone();
-    pR.position.x = 0.014;
-    mote.add(core, glow, eyeL, eyeR, pL, pR);
-
-    const idx = caughtOwls.length;
-    const phi = idx * 2.39996;
-    const r = 0.025 + ((idx * 0.028) % 0.08);
-    const y = -0.14 + (((idx * 0.045) + 0.02) % 0.28);
-    const x = Math.cos(phi) * r;
-    const z = Math.sin(phi) * r;
-    mote.position.set(x, y, z);
-    owlMotesGroup.add(mote);
-
-    caughtOwls.push({
-      mesh: mote,
-      baseX: x,
-      baseY: y,
-      baseZ: z,
-      phase: Math.random() * Math.PI * 2,
-    });
-
-    owlJarLight.intensity = Math.min(0.9 + caughtOwls.length * 0.12, 4.0);
-    ui.setJarCounts(caughtFireflies.length, caughtOwls.length);
-  }
-
-  // Independent Flying Projectiles: guarantees 100% of caught items reach the jars
-  interface FlyingProjectile {
-    mesh: Group;
-    startPos: Vector3;
-    targetPos: Vector3;
-    progress: number;
-    kind: "firefly" | "owl";
-  }
-  const activeProjectiles: FlyingProjectile[] = [];
-  const fireflyJarTarget = new Vector3(-0.98, 0.36, 0.95);
-  const owlJarTarget = new Vector3(-0.42, 0.36, 1.05);
-
-  // Cartoon Birds for Block B distractor
-  interface ActiveBird {
-    mesh: Group;
-    speedX: number;
-    baseY: number;
-    flapPhase: number;
-    flapSpeed: number;
-    wingL: Mesh;
-    wingR: Mesh;
-  }
-  const birds: ActiveBird[] = [];
-  const BIRD_COLORS = [0xff3366, 0x0284c7, 0xfacc15, 0x10b981, 0xa855f7, 0xf97316];
-
-  function spawnBirdFlock(count: number = 3 + Math.floor(Math.random() * 3)) {
-    const dir = Math.random() < 0.5 ? 1 : -1;
-    const baseHeight = 1.2 + Math.random() * 1.4;
-    const baseSpeed = 4.4 + Math.random() * 1.6;
-
-    for (let k = 0; k < count; k++) {
-      const birdGroup = new Group();
-      const color = BIRD_COLORS[(k + Math.floor(Math.random() * BIRD_COLORS.length)) % BIRD_COLORS.length]!;
-      const birdMat = new MeshLambertMaterial({ color });
-
-      const body = new Mesh(new SphereGeometry(0.16, 8, 8), birdMat);
-      body.scale.set(1.5, 0.9, 0.9);
-
-      const beak = new Mesh(new ConeGeometry(0.06, 0.14, 6), new MeshLambertMaterial({ color: 0xffb700 }));
-      beak.rotation.z = -Math.PI / 2;
-      beak.position.set(0.24, 0, 0);
-
-      const eyeMat = new MeshBasicMaterial({ color: 0xffffff });
-      const pupilMat = new MeshBasicMaterial({ color: 0x18113c });
-      const eye = new Mesh(new SphereGeometry(0.045, 6, 6), eyeMat);
-      eye.position.set(0.12, 0.08, 0.11);
-      const pupil = new Mesh(new SphereGeometry(0.022, 6, 6), pupilMat);
-      pupil.position.set(0.14, 0.08, 0.13);
-      birdGroup.add(eye, pupil);
-
-      const wingGeo = new BoxGeometry(0.32, 0.02, 0.22);
-      const wingL = new Mesh(wingGeo, birdMat);
-      wingL.position.set(0, 0.06, 0.16);
-      const wingR = new Mesh(wingGeo, birdMat);
-      wingR.position.set(0, 0.06, -0.16);
-
-      birdGroup.add(body, beak, wingL, wingR);
-
-      // Stagger birds in flock formation across the screen
-      const startX = (dir > 0 ? -5.6 : 5.6) - dir * (k * 0.85 + Math.random() * 0.4);
-      const startY = baseHeight + (k - (count - 1) / 2) * 0.28 + (Math.random() * 0.2 - 0.1);
-      const startZ = 1.0 + Math.random() * 1.8;
-
-      birdGroup.position.set(startX, startY, startZ);
-      if (dir < 0) birdGroup.rotation.y = Math.PI;
-
-      scene.add(birdGroup);
-      birds.push({
-        mesh: birdGroup,
-        speedX: dir * (baseSpeed + (Math.random() * 0.8 - 0.4)),
-        baseY: startY,
-        flapPhase: Math.random() * Math.PI * 2,
-        flapSpeed: 0.032 + Math.random() * 0.012,
-        wingL,
-        wingR,
-      });
+  // Birds never pass in front of a perch or the owl: two fly behind the tree (the leaves and the trunk hide
+  // them for a moment), one skims the grass below the lowest perch. They distract; they must not cover a target.
+  const launchBirds = (ts: number) => {
+    const dir = rnd() < 0.5 ? 1 : -1;
+    const base = 1.35 + rnd() * 0.8;
+    let n = 0;
+    for (const b of birds) {
+      if (b.active || n >= 3) continue;
+      const low = n === 2;
+      b.active = true;
+      b.dir = dir;
+      b.speed = (low ? 5.2 : 6.4) + rnd() * 1.2;
+      b.y = low ? 0.5 + rnd() * 0.2 : base + n * 0.55;
+      b.delay = ts + n * 160;
+      b.bird.root.position.set(-dir * (low ? 6.6 : 10.5 + n * 0.7), b.y, low ? 1.9 : -2.6 - n * 0.5);
+      b.bird.root.scale.setScalar(low ? 1.0 : 1.6);
+      b.bird.root.rotation.y = dir > 0 ? 0 : Math.PI;
+      b.bird.root.visible = true;
+      n++;
     }
-  }
+  };
 
-  // Screen shake on wrong cricket tap and thunder strikes
-  let shakeTime = 0;
-  let lightningIntensity = 0;
-
-  // Persistent Storm Director: flocks of birds and lightning strikes throughout the entire game
-  let nextBirdFlockTime = 2200;
-  let nextLightningTime = 4800;
-
-  function triggerLightningAndThunder() {
+  const tmp = new Vector3();
+  const lightning = (ts: number) => {
     audio.thunder();
-    ui.flashLightning();
-    lightningIntensity = 1.0;
-    moonLight.intensity = 12.0;
-    ambientFill.intensity = 5.0;
-    hemiLight.intensity = 5.5;
-    shakeTime = 0.55;
-  }
-
-  // Runner state machine
-  let activeStimulusType: TrialType | null = null;
-  let currentPerchIdx = 0;
+    const bolt = Math.floor(rnd() * forest.bolts.length) % forest.bolts.length;
+    tmp.copy((forest.bolts[bolt] as Mesh).position).project(camera);
+    strike = { start: ts, bolt, x: clamp01((tmp.x + 1) / 2) };
+  };
 
   const runner = new StormWatchRunner(
     {
       onStateChange(st) {
         if (destroyed) return;
+        state = st;
+        parent.dataset.phase = st;
+        const ts = lastTs;
         switch (st) {
-          case "intro":
-            ui.setRain(true);
-            ui.say(STRINGS.readyQuestion, STRINGS.readySubtext);
-            ui.showIntro(true, () => {
-              audio.unlock();
-              audio.startRain();
-              ui.setRain(true);
-              audio.babble(1200);
-              runner.start();
-            });
-            ui.showHand(false);
-            break;
           case "practice-intro":
-            ui.showIntro(false);
-            ui.setRain(true);
-            audio.babble(1200);
             ui.say(STRINGS.practiceIntro, STRINGS.practiceIntroSub);
-            ui.showHand(false);
+            decorTarget = 0;
+            setMode("talk", ts);
+            audio.babble(1200);
+            break;
+          case "practice-trial-isi":
+            ui.say(null);
+            setMode("idle", ts);
             break;
           case "practice-trial-stimulus": {
-            const cur = runner.getCurrentTrial();
-            if (cur) {
-              if (cur.type === "go") {
-                ui.say(STRINGS.practiceGo1, STRINGS.goldenFireflyTip);
-                audio.babble(800);
-                audio.fireflyChirp();
-                ui.showHand(true, window.innerWidth * 0.5, window.innerHeight * 0.45);
-              } else if (cur.type === "nogo") {
-                ui.say(STRINGS.practiceNogo, STRINGS.shadowCricketTip);
-                audio.babble(800);
-                audio.cricketChirp();
-                ui.showHand(false);
-              } else if (cur.type === "go_audio") {
-                ui.say(STRINGS.practiceAudio, STRINGS.owlTip);
-                audio.babble(800);
-                audio.owlHoot();
-                ui.showHand(true, window.innerWidth * 0.5, window.innerHeight * 0.45);
-              }
+            const type = runner.getCurrentTrial()?.type;
+            if (type === "go") {
+              ui.say(runner.getLastPracticeOutcome() === null ? STRINGS.practiceGo1 : STRINGS.practiceGo2, STRINGS.goldenFireflyTip);
+              audio.babble(800);
+            } else if (type === "nogo") {
+              ui.say(STRINGS.practiceNogo, STRINGS.shadowCricketTip);
+              audio.babble(800);
+            } else if (type === "go_audio") {
+              // No babble here: the hoot must be heard. It repeats once while the instruction is up.
+              ui.say(STRINGS.practiceAudio, STRINGS.owlTip);
+              rehootAt = ts + 1700;
             }
+            setMode("talk", ts);
             break;
           }
           case "practice-trial-feedback": {
-            const lastOutcome = runner.getLastPracticeOutcome();
-            if (lastOutcome === "hit") {
-              ui.say(STRINGS.feedbackHit);
-            } else if (lastOutcome === "correct_reject") {
-              ui.say(STRINGS.feedbackNogoSuccess);
-            } else if (lastOutcome === "commission") {
-              ui.say(STRINGS.feedbackNogoFail);
-            } else if (lastOutcome === "omission") {
-              ui.say(STRINGS.feedbackOmission);
-            } else {
-              ui.say(null);
-            }
-            ui.showHand(false);
+            const o = runner.getLastPracticeOutcome();
+            if (o === "hit") ui.say(STRINGS.feedbackHit);
+            else if (o === "correct_reject") ui.say(STRINGS.feedbackNogoSuccess);
+            else if (o === "commission") ui.say(STRINGS.feedbackNogoFail);
+            else if (o === "omission") ui.say(STRINGS.feedbackOmission);
+            else ui.say(null);
+            if (o === "hit" || o === "correct_reject") setMode("hop", ts);
             break;
           }
           case "between":
-            audio.babble(1000);
             ui.say(STRINGS.betweenBlocks);
+            stormTarget = 0;
+            audio.stopRain();
+            decorTarget = 1;
+            setMode("rest", ts);
+            audio.babble(1000);
             break;
           case "block-intro": {
-            const cur = runner.getCurrentTrial();
-            ui.showIntro(false);
-            ui.showHand(false);
-            if (cur?.blockKind === "storm") {
-              ui.say(STRINGS.stormBlockIntro);
-            } else {
-              ui.say(STRINGS.calmBlockIntro);
-            }
-            audio.startRain();
-            ui.setRain(true);
+            blockIndex += 1;
+            const kind = blockKinds[blockIndex] ?? "calm";
+            parent.dataset.block = kind;
+            ui.say(kind === "storm" ? STRINGS.stormBlockIntro : STRINGS.calmBlockIntro);
+            stormTarget = kind === "storm" ? 1 : 0;
+            if (kind === "storm") audio.startRain();
+            else audio.stopRain();
+            decorTarget = 0;
+            firstTrialOfBlock = true;
+            setMode("hop", ts);
             audio.babble(1400);
             break;
           }
           case "trial-isi":
-            ui.say(null);
-            break;
-          case "trial-stimulus":
+            // The block instruction stays a moment into the first wait (no stimulus yet), then goes well before it.
+            if (firstTrialOfBlock) bubbleHideAt = ts + 700;
+            else ui.say(null);
+            firstTrialOfBlock = false;
+            if (mode !== "hop") setMode("idle", ts);
             break;
           case "celebration":
+            ui.say(STRINGS.celebration);
+            stormTarget = 0;
             audio.stopRain();
             audio.catchSuccess();
-            ui.showCelebration(true, STRINGS.celebration);
+            decorTarget = 1;
+            nextFirework = ts + 300;
+            nextRise = ts + 500;
+            setMode("celebrate", ts);
+            break;
+          default:
             break;
         }
       },
-      onStimulusOnset(trial) {
+      onStimulusOnset(trial, isPractice) {
         if (destroyed) return;
-        activeStimulusType = trial.type;
-        currentPerchIdx = (trial.treeLocation ?? 0) % NATURAL_TREE_PERCHES.length;
-        const pos = NATURAL_TREE_PERCHES[currentPerchIdx]!;
-
-        // Place stimulus at natural tree perch
-        stimulusGroup.position.set(pos[0], pos[1], pos[2]);
-        stimulusGroup.scale.set(1, 1, 1);
-
-        perchPlateGroup.visible = true;
-        fireflyGroup.visible = trial.type === "go";
-        cricketGroup.visible = trial.type === "nogo";
-        owlGroup.visible = trial.type === "go_audio";
-
-        if (trial.type === "go") {
-          (platePulse.material as MeshBasicMaterial).color.setHex(0xffea00);
-          (plateAccent.material as MeshBasicMaterial).color.setHex(0xffcc00);
-          stimulusPointLight.color.setHex(0xffea00);
-          stimulusPointLight.position.set(pos[0], pos[1] + 0.1, pos[2] + 0.2);
-          stimulusPointLight.intensity = 5.5;
-        } else if (trial.type === "nogo") {
-          (platePulse.material as MeshBasicMaterial).color.setHex(0xff0033);
-          (plateAccent.material as MeshBasicMaterial).color.setHex(0xff1744);
-          stimulusPointLight.intensity = 0; // Crickets do not emit light
-        } else if (trial.type === "go_audio") {
-          (platePulse.material as MeshBasicMaterial).color.setHex(0xff9900);
-          (plateAccent.material as MeshBasicMaterial).color.setHex(0xffaa00);
-          stimulusPointLight.color.setHex(0xff9900);
-          stimulusPointLight.position.set(pos[0], pos[1] + 0.1, pos[2] + 0.2);
-          stimulusPointLight.intensity = 4.5;
+        // Inside runner.frame(ts): drawn by the render call of this same callback, at full size.
+        const ts = lastTs;
+        if (trial.type === "go_audio") {
+          // Sound only. The owl does not move, light up or open its eyes until it has been tapped.
           audio.owlHoot();
+          active = { type: trial.type, target: OWL_CENTRE, start: ts, practice: isPractice, responded: false };
+        } else {
+          const perch = perches[trial.treeLocation % perches.length] as (typeof perches)[number];
+          const c = perch.centre;
+          if (trial.type === "go") {
+            flight = null;
+            firefly.root.position.set(c.x, c.y - 0.02, c.z + 0.1);
+            firefly.root.scale.setScalar(FIREFLY_SCALE);
+            firefly.root.visible = true;
+            perchLight.position.set(c.x, c.y + 0.1, c.z + 0.9);
+            perchLight.intensity = LIGHT_ON;
+          } else {
+            cricketLeave = null;
+            cricket.root.position.set(c.x - 0.02, c.y - 0.02, c.z + 0.12);
+            cricket.root.scale.setScalar(CRICKET_SCALE);
+            cricket.root.visible = true;
+          }
+          active = { type: trial.type, target: c, start: ts, practice: isPractice, responded: false };
         }
+        parent.dataset.stim = trial.type;
       },
       onStimulusEnd() {
         if (destroyed) return;
-        activeStimulusType = null;
-        perchPlateGroup.visible = false;
-        fireflyGroup.visible = false;
-        cricketGroup.visible = false;
-        owlGroup.visible = false;
-        stimulusPointLight.intensity = 0;
+        hideStimulus();
       },
       onDistractorTrigger(trial) {
         if (destroyed) return;
-        const dType: DistractorType = trial.distractorType ?? "bird";
-        if (dType === "bird" || dType === "both") {
-          spawnBirdFlock();
-        }
-        if (dType === "thunder" || dType === "both") {
-          triggerLightningAndThunder();
-        }
+        const d = trial.distractorType ?? "bird";
+        if (d === "bird" || d === "both") launchBirds(lastTs);
+        if (d === "thunder" || d === "both") lightning(lastTs);
       },
       onHit() {
-        if (destroyed) return;
-        audio.catchSuccess();
-
-        const isOwl = activeStimulusType === "go_audio";
-        const kind: "firefly" | "owl" = isOwl ? "owl" : "firefly";
-
-        // Spawn independent flying projectile
-        const proj = new Group();
-        if (kind === "firefly") {
-          const core = new Mesh(new SphereGeometry(0.18, 12, 12), new MeshBasicMaterial({ color: 0xeeff41 }));
-          const glow = new Mesh(new SphereGeometry(0.36, 12, 12), new MeshBasicMaterial({ color: 0xffea00, transparent: true, opacity: 0.6 }));
-          proj.add(core, glow);
+        if (destroyed || !active) return;
+        audio.catchSuccess(); // the same chime for every catch
+        active.responded = true;
+        if (active.type === "go") {
+          sparkles.spawn(tmp.copy(active.target).setZ(active.target.z + 0.3), 18, SPARK, 1.8, 600, -1.5);
+          flight = { from: firefly.root.position.clone(), start: lastTs };
+          perchLight.intensity = 0;
         } else {
-          const body = new Mesh(new SphereGeometry(0.20, 12, 12), new MeshBasicMaterial({ color: 0x8b4513 }));
-          const chest = new Mesh(new SphereGeometry(0.12, 10, 10), new MeshBasicMaterial({ color: 0xfef3c7 }));
-          chest.position.set(0, -0.04, 0.10);
-          const eyeL = new Mesh(new SphereGeometry(0.045, 8, 8), new MeshBasicMaterial({ color: 0xffcc00 }));
-          eyeL.position.set(-0.06, 0.06, 0.14);
-          const eyeR = eyeL.clone();
-          eyeR.position.x = 0.06;
-          const glow = new Mesh(new SphereGeometry(0.38, 12, 12), new MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.5 }));
-          proj.add(body, chest, eyeL, eyeR, glow);
+          owlAwakeFrom = lastTs;
+          noteFlight = { start: lastTs };
+          sparkles.spawn(tmp.copy(OWL_CENTRE).setZ(OWL_CENTRE.z + 0.4), 14, SPARK, 1.6, 600, -1.5);
         }
-        proj.position.copy(stimulusGroup.position);
-        scene.add(proj);
-
-        activeProjectiles.push({
-          mesh: proj,
-          startPos: stimulusGroup.position.clone(),
-          targetPos: isOwl ? owlJarTarget : fireflyJarTarget,
-          progress: 0,
-          kind,
-        });
-
-        // Hide branch stimulus immediately so it cannot be double-tapped
-        perchPlateGroup.visible = false;
-        fireflyGroup.visible = false;
-        owlGroup.visible = false;
-        stimulusPointLight.intensity = 0;
       },
       onCommission() {
-        if (destroyed) return;
-        // Tapped shadow cricket: clearly audible cartoon bonk sound!
-        audio.wrongTap();
-
-        // Subtle camera shake
-        shakeTime = 0.2;
-
-        // Cricket shrinks and darts away immediately
-        cricketGroup.scale.set(0.4, 0.4, 0.4);
-        perchPlateGroup.visible = false;
-        setTimeout(() => {
-          cricketGroup.visible = false;
-        }, 70);
+        if (destroyed || !active) return;
+        // No sound and no mark: the cricket simply hops off its leaf.
+        active.responded = true;
+        cricketLeave = { start: lastTs, from: cricket.root.position.clone() };
       },
-      onTapFeedback() {
+      onTapFeedback(x, y) {
         if (destroyed) return;
         audio.tap();
+        ui.ripple(x, y);
       },
       onComplete(res) {
         if (destroyed) return;
         opts.onComplete?.(res);
       },
     },
-    {
-      seed: opts.seed,
-      trialsPerBlock: opts.trialsPerBlock,
-      stimulusMs: opts.stimulusMs,
-      skipPractice: opts.skipPractice,
-    },
+    { seed: opts.seed, trialsPerBlock: opts.trialsPerBlock, stimulusMs: opts.stimulusMs, skipPractice: opts.skipPractice },
   );
-
-  function getStimulusScreenPos(): { x: number; y: number; radiusPx: number } | null {
-    if (activeStimulusType === null) return null;
-    const p = stimulusGroup.position.clone().project(camera);
-    if (p.z > 1) return null;
-
-    const w = renderer.domElement.clientWidth;
-    const h = renderer.domElement.clientHeight;
-    const screenX = ((p.x + 1) / 2) * w;
-    const screenY = ((-p.y + 1) / 2) * h;
-
-    const edgeP = stimulusGroup.position.clone().add(new Vector3(0.56, 0, 0)).project(camera);
-    const edgeScreenX = ((edgeP.x + 1) / 2) * w;
-    const baseRadius = Math.abs(edgeScreenX - screenX);
-    const radiusPx = Math.max(65, baseRadius * 1.4);
-
-    return { x: screenX, y: screenY, radiusPx };
-  }
-
-  // Explicitly initialize intro modal and start callback on mount
-  ui.setRain(true);
+  parent.dataset.phase = "intro";
+  ui.title(STRINGS.title);
   ui.say(STRINGS.readyQuestion, STRINGS.readySubtext);
-  ui.showIntro(true, () => {
-    audio.unlock();
-    audio.startRain();
-    ui.setRain(true);
-    audio.babble(1200);
-    runner.start();
-  });
+  ui.play(true);
 
-  function onPointerDown(e: PointerEvent) {
-    if (!isPrimaryPointer(e)) return;
-    audio.unlock();
-    audio.startRain();
+  // ---- screen geometry: hit test, hand, dataset for end-to-end checks ----
+  const edge = new Vector3();
+  const toScreen = (world: Vector3): { x: number; y: number; r: number } => {
+    tmp.copy(world).project(camera);
+    const x = ((tmp.x + 1) / 2) * viewW;
+    const y = ((1 - tmp.y) / 2) * viewH;
+    edge.copy(world).setX(world.x + HIT_RADIUS).project(camera);
+    const r = Math.max(MIN_HIT_PX, Math.abs(((edge.x + 1) / 2) * viewW - x));
+    return { x, y, r };
+  };
+  const updateTargets = () => {
+    const all = [...perches.map((p) => p.centre), OWL_CENTRE].map((c) => toScreen(c));
+    parent.dataset.targets = all.map((s) => `${s.x.toFixed(0)},${s.y.toFixed(0)},${s.r.toFixed(0)}`).join(";");
+  };
+
+  const onDown = (e: PointerEvent) => {
+    if (!isPrimaryPointer(e)) return; // a second finger is not a response
+    audio.unlock(); // inside the gesture: required by iOS Safari
     const rect = ui.root.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    if (runner.state === "intro") {
+      // Only the Start button leaves the start screen.
+      if (ui.playHit(e.clientX, e.clientY)) {
+        ui.play(false);
+        ui.title(null);
+        ui.ripple(x, y);
+        runner.start(e.timeStamp);
+      }
+      return;
+    }
+    let onTarget = false;
+    if (active) {
+      const s = toScreen(active.target);
+      onTarget = Math.hypot(x - s.x, y - s.y) <= s.r;
+    }
+    runner.pointerDown(e.timeStamp, x, y, onTarget);
+  };
+  const noMenu = (e: Event) => e.preventDefault();
+  ui.root.addEventListener("pointerdown", onDown);
+  ui.root.addEventListener("contextmenu", noMenu);
 
-    let isHitOnStimulus = false;
-    const stimPos = getStimulusScreenPos();
-    if (stimPos) {
-      const dist = Math.hypot(x - stimPos.x, y - stimPos.y);
-      if (dist <= stimPos.radiusPx) {
-        isHitOnStimulus = true;
+  const onLost = (e: Event) => {
+    e.preventDefault();
+    lost = true;
+  };
+  const onRestored = () => {
+    lost = false;
+  };
+  canvas.addEventListener("webglcontextlost", onLost);
+  canvas.addEventListener("webglcontextrestored", onRestored);
+
+  const target = new Vector3();
+  let camBase = new Vector3();
+  const fit = () => {
+    const w = Math.max(1, ui.root.clientWidth);
+    const h = Math.max(1, ui.root.clientHeight);
+    viewW = w;
+    viewH = h;
+    const aspect = w / h;
+    const portrait = aspect < 1;
+    lumaPos.copy(portrait ? LUMA_PORTRAIT : LUMA_LANDSCAPE);
+    station.root.position.copy(portrait ? JAR_PORTRAIT : JAR_LANDSCAPE);
+    camera.fov = portrait ? 50 : 38;
+    const tanH = Math.tan((camera.fov * Math.PI) / 360);
+    // Wide enough for all four perches (and Luma in landscape), tall enough for the tree.
+    const halfW = portrait ? 2.85 : 4.35;
+    const halfH = portrait ? 3.6 : 2.95;
+    const d = Math.max(7.2, halfW / (tanH * aspect), halfH / tanH);
+    camera.aspect = aspect;
+    target.set(0, portrait ? 1.2 : 1.5, 0.6);
+    camera.position.copy(target).addScaledVector(VIEW_DIR, d);
+    camBase = camera.position.clone();
+    camera.lookAt(target);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    fog.near = d + 14;
+    fog.far = d + 70;
+    renderer.setSize(w, h, false);
+    updateTargets();
+  };
+  fit();
+  const ro = new ResizeObserver(fit);
+  ro.observe(ui.root);
+
+  const poseLuma = (ts: number) => {
+    const t = ts - modeStart;
+    let lift = 0;
+    let sy = 1;
+    let sx = 1;
+    let flap = 0;
+    let armL = 0;
+    let armR = 0;
+    let talking = false;
+    if ((mode === "hop" || mode === "celebrate") && !reduced) {
+      const period = mode === "celebrate" ? 720 : 620;
+      const p = (t % period) / period;
+      const air = p < 0.6 ? p / 0.6 : -1;
+      if (air >= 0) {
+        lift = (mode === "celebrate" ? 0.5 : 0.28) * 4 * air * (1 - air);
+        const s = Math.sin(Math.PI * air);
+        sy = 1 + 0.16 * s;
+        sx = 1 - 0.08 * s;
+      } else {
+        const q = (p - 0.6) / 0.4;
+        const sq = Math.sin(q * Math.PI) * 0.2;
+        sy = 1 - sq;
+        sx = 1 + sq * 0.7;
+      }
+      armL = armR = mode === "celebrate" ? 1.6 + Math.sin(ts * 0.012) * 0.3 : 0.8;
+      flap = Math.sin(ts * 0.05) * 0.5;
+      if (mode === "hop" && t > 1250) setMode("idle", ts);
+    } else {
+      sy = 1 + 0.018 * Math.sin(ts * 0.0032);
+      sx = 1 - 0.009 * Math.sin(ts * 0.0032);
+      if (mode === "celebrate" || mode === "hop") armL = armR = 1.4;
+      if (mode === "wave") {
+        armR = 2.1 + (reduced ? 0 : Math.sin(ts * 0.011) * 0.45);
+        if (!reduced) flap = Math.sin(ts * 0.004) * 0.12;
+      }
+      if (mode === "talk") {
+        talking = t < 1600;
+        lift = talking && !reduced ? Math.abs(Math.sin(ts * 0.0105)) * 0.05 : 0;
+        armL = armR = talking ? 0.35 + Math.sin(ts * 0.007) * 0.2 : 0;
+      }
+      if (mode === "rest") {
+        sy = 1 + 0.03 * Math.sin(ts * 0.0016);
+        sx = 1 - 0.015 * Math.sin(ts * 0.0016);
+      }
+    }
+    // A small happy lift when a light reaches the jar (identical every time).
+    if (ts < happyUntil && !reduced) {
+      const k = 1 - (happyUntil - ts) / 420;
+      lift += 0.16 * Math.sin(Math.PI * k);
+      armL = armR = Math.max(armL, 1.2 * Math.sin(Math.PI * k));
+    }
+    luma.root.position.set(lumaPos.x, lumaPos.y + lift, lumaPos.z);
+    luma.root.rotation.y = 0.42; // turned toward the tree
+    luma.squash.scale.set(sx, sy, sx);
+    (luma.arms[0] as Group).rotation.z = -armL;
+    (luma.arms[1] as Group).rotation.z = armR;
+    (luma.wings[0] as Group).rotation.y = flap;
+    (luma.wings[1] as Group).rotation.y = -flap;
+    for (const a of luma.antennae) a.rotation.z = Math.sin(ts * 0.004 + a.position.x * 9) * 0.05 - lift * 0.4;
+    luma.mouth.visible = talking;
+    luma.smile.visible = !talking;
+    if (talking) luma.mouth.scale.set(0.075, 0.025 + 0.045 * Math.abs(Math.sin(ts * 0.021)), 0.03);
+    const blink = ts % 3400 < 120 ? 0.12 : 1;
+    let eyeY = mode === "rest" ? Math.min(blink, 0.45) : blink;
+    if (ts < happyUntil || mode === "celebrate") eyeY = Math.min(eyeY, 0.55);
+    for (const e of luma.eyes) e.scale.y = eyeY;
+    forest.shadow.position.set(lumaPos.x, 0.035, lumaPos.z + 0.05);
+    forest.shadow.scale.setScalar(1.3 * (1 - Math.min(lift, 0.6) * 0.6));
+  };
+
+  const landInJar = (ts: number, at: Vector3) => {
+    caught += 1;
+    sparkles.spawn(at, 20, SPARK, 1.9, 700, -2.0);
+    happyUntil = ts + 420;
+  };
+
+  const head = new Vector3();
+  const mouth = new Vector3();
+  const frame = (ts: number) => {
+    if (destroyed) return;
+    raf = requestAnimationFrame(frame);
+    if (lost) return;
+    const dt = lastTs ? Math.min(ts - lastTs, 50) : 16;
+    lastTs = ts;
+
+    // 1. Measurement state machine. May place a stimulus for this very frame.
+    runner.frame(ts);
+
+    // 2. Visuals.
+    if (bubbleHideAt >= 0 && ts >= bubbleHideAt) {
+      bubbleHideAt = -1;
+      if (state === "trial-isi" || state === "trial-stimulus") ui.say(null);
+    }
+    if (rehootAt >= 0 && ts >= rehootAt) {
+      rehootAt = -1;
+      if (active?.type === "go_audio" && active.practice && !active.responded) audio.owlHoot();
+    }
+
+    // Weather: one level, 0 calm to 1 storm, eased over about two seconds.
+    storm += (stormTarget - storm) * Math.min(1, dt / 800);
+    if (Math.abs(stormTarget - storm) < 0.002) storm = stormTarget;
+    const s = storm;
+    ui.storm(s);
+    fog.color.copy(CALM_FOG).lerp(STORM_FOG, s);
+    hemi.color.copy(CALM_SKYLIGHT).lerp(STORM_SKYLIGHT, s);
+    let flash = 0;
+    if (strike) {
+      const t = ts - strike.start;
+      // Two quick pulses, then a slow fade: at most two flashes in a second.
+      if (reduced) flash = t < 700 ? 0.45 * Math.sin((Math.PI * t) / 700) : 0;
+      else if (t < 60) flash = t / 60;
+      else if (t < 140) flash = mix(1, 0.3, (t - 60) / 80);
+      else if (t < 200) flash = mix(0.3, 0.9, (t - 140) / 60);
+      else flash = 0.9 * Math.pow(1 - clamp01((t - 200) / 700), 2);
+      const bolt = forest.bolts[strike.bolt] as Mesh;
+      const showBolt = !reduced && t < 280;
+      bolt.visible = showBolt;
+      forest.boltMat.opacity = showBolt ? Math.min(1, flash * 1.2) : 0;
+      ui.flash(flash * 0.85, strike.x);
+      if (t >= 900) {
+        strike = null;
+        bolt.visible = false;
+        ui.flash(0);
+      }
+    }
+    hemi.intensity = mix(2.1, 1.55, s) + flash * 1.0;
+    moonLight.intensity = mix(2.2, 1.0, s) + flash * 0.9;
+    rim.intensity = mix(0.8, 0.25, s);
+    forest.moon.opacity = 1 - 0.9 * s;
+    forest.moonHalo.opacity = 0.42 * (1 - s);
+    forest.stars.opacity = 0.85 * (1 - 0.92 * s);
+    forest.fairClouds.opacity = 0.55 * (1 - s);
+    const cloudIn = easeInOut(s);
+    for (const c of forest.clouds) {
+      c.root.visible = s > 0.01;
+      if (!c.root.visible) continue;
+      c.root.position.lerpVectors(c.away, c.home, cloudIn);
+      if (!reduced) c.root.position.x += Math.sin(ts * 0.00012 + c.phase) * 1.4;
+      c.mat.opacity = cloudIn;
+    }
+    const rain = forest.rain;
+    rain.a.visible = rain.b.visible = s > 0.02;
+    if (rain.a.visible) {
+      rain.mat.opacity = s * 0.42;
+      const off = ((ts * (reduced ? 0.003 : 0.0105)) % rain.span + rain.span) % rain.span;
+      rain.a.position.set(rain.slant * off, -off, 0);
+      rain.b.position.set(rain.slant * (off - rain.span), rain.span - off, 0);
+    }
+    if (!reduced) {
+      const amp = 0.006 + 0.024 * s;
+      forest.sway.forEach((g, k) => {
+        g.rotation.z = Math.sin(ts * 0.0011 + k * 1.3) * amp + Math.sin(ts * 0.0027 + k) * amp * 0.4;
+      });
+    }
+
+    // Birds crossing the clearing (storm block only: launched by the runner's distractor hook).
+    for (const b of birds) {
+      if (!b.active || ts < b.delay) continue;
+      const r = b.bird.root;
+      r.position.x += b.dir * b.speed * (dt / 1000);
+      r.position.y = b.y + Math.sin(ts * 0.0042 + b.phase) * 0.16;
+      r.rotation.z = Math.cos(ts * 0.0042 + b.phase) * 0.09;
+      const beat = Math.sin(ts * 0.021 + b.phase);
+      (b.bird.wings[0] as Group).rotation.x = 0.25 + beat * 0.85;
+      (b.bird.wings[1] as Group).rotation.x = -0.25 - beat * 0.85;
+      if (Math.abs(r.position.x) > 11.5) {
+        b.active = false;
+        r.visible = false;
       }
     }
 
-    runner.pointerDown(e.timeStamp, x, y, isHitOnStimulus);
-  }
-
-  ui.root.addEventListener("pointerdown", onPointerDown);
-
-  function onResize() {
-    if (destroyed) return;
-    const w = parent.clientWidth || 800;
-    const h = parent.clientHeight || 600;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-  }
-
-  const ro = new ResizeObserver(() => onResize());
-  ro.observe(parent);
-  onResize();
-
-  // Animation loop
-  let lastT = performance.now();
-  function loop(now: number) {
-    if (destroyed) return;
-    rafId = requestAnimationFrame(loop);
-
-    const dt = Math.min((now - lastT) / 1000, 0.1);
-    lastT = now;
-
-    // Advance runner BEFORE render
-    runner.frame(now);
-
-    // Camera shake on error
-    if (shakeTime > 0) {
-      shakeTime -= dt;
-      camera.position.x = (Math.random() - 0.5) * 0.12;
-      camera.position.y = 1.45 + (Math.random() - 0.5) * 0.08;
-    } else {
-      camera.position.x = 0;
-      camera.position.y = 1.45;
+    // The creature on its perch. Full size from the first frame; the settle afterwards is only a small overshoot.
+    if (active && active.type !== "go_audio") {
+      const pop = reduced ? 1 : 1 + 0.12 * (1 - easeOut((ts - active.start) / 180));
+      if (active.type === "go" && !flight) {
+        firefly.root.scale.setScalar(FIREFLY_SCALE * pop);
+        if (!reduced) firefly.root.position.y = active.target.y - 0.02 + Math.sin(ts * 0.009) * 0.045;
+      } else if (active.type === "nogo" && !cricketLeave) {
+        cricket.root.scale.setScalar(CRICKET_SCALE * pop);
+      }
+    }
+    const wingBeat = reduced ? 0.3 : Math.sin(ts * 0.08) * 0.6;
+    for (const [k, w] of firefly.wings.entries()) w.rotation.y = (k ? -1 : 1) * wingBeat;
+    if (cricket.root.visible && !reduced) {
+      cricket.antennae.forEach((a, k) => {
+        a.rotation.z = Math.sin(ts * 0.006 + k * 1.4) * 0.09;
+      });
+    }
+    if (cricketLeave) {
+      const k = clamp01((ts - cricketLeave.start) / 300);
+      cricket.root.position.set(cricketLeave.from.x + 1.1 * k, cricketLeave.from.y + 1.3 * k * (1 - k) * 2 - 0.4 * k * k, cricketLeave.from.z);
+      cricket.root.scale.setScalar(CRICKET_SCALE * (1 - 0.75 * easeInOut(k)));
+      if (k >= 1) {
+        cricketLeave = null;
+        cricket.root.visible = false;
+      }
     }
 
-    // Luma breathing & wing flutter
-    const idleTime = now * 0.003;
-    luma.squash.scale.y = 1 + Math.sin(idleTime * 2) * 0.035;
-    luma.squash.scale.x = 1 - Math.sin(idleTime * 2) * 0.018;
-    luma.wings.forEach((w, idx) => {
-      w.rotation.y = (idx === 0 ? 1 : -1) * (0.35 + Math.sin(now * 0.02) * 0.45);
+    if (flight) {
+      const k = Math.min((ts - flight.start) / FLIGHT_MS, 1);
+      const e = easeInOut(k);
+      jarMouth(mouth);
+      firefly.root.position.lerpVectors(flight.from, mouth, e);
+      firefly.root.position.y += Math.sin(Math.PI * k) * 0.8;
+      firefly.root.scale.setScalar(FIREFLY_SCALE * (1 - 0.6 * e));
+      if (k >= 1) {
+        flight = null;
+        firefly.root.visible = false;
+        landInJar(ts, mouth);
+      }
+    }
+    if (noteFlight) {
+      const k = Math.min((ts - noteFlight.start) / FLIGHT_MS, 1);
+      const e = easeInOut(k);
+      jarMouth(mouth);
+      note.visible = true;
+      note.position.lerpVectors(OWL_CENTRE, mouth, e);
+      note.position.y += Math.sin(Math.PI * k) * 0.7;
+      note.position.z += 0.5;
+      note.scale.setScalar(0.6 * (1 - 0.45 * e));
+      if (k >= 1) {
+        noteFlight = null;
+        note.visible = false;
+        landInJar(ts, mouth);
+      }
+    }
+
+    // The owl: asleep and still (slow breathing only) until a caught hoot wakes it for a moment.
+    const awakeT = owlAwakeFrom >= 0 ? (ts - owlAwakeFrom) / 1300 : -1;
+    const isAwake = awakeT >= 0 && awakeT < 1;
+    owl.asleep.visible = !isAwake;
+    owl.awake.visible = isAwake;
+    const breath = reduced ? 0 : Math.sin(ts * 0.0017) * 0.02;
+    owl.body.scale.set(1 - breath * 0.5, 1 + breath, 1 - breath * 0.5);
+    if (isAwake && !reduced) {
+      const fade = 1 - awakeT;
+      owl.body.rotation.z = Math.sin(awakeT * Math.PI * 5) * 0.12 * fade;
+      const flap = Math.abs(Math.sin(awakeT * Math.PI * 4)) * 0.7 * fade;
+      (owl.wings[0] as Group).rotation.z = -flap;
+      (owl.wings[1] as Group).rotation.z = flap;
+    } else {
+      owl.body.rotation.z = 0;
+      (owl.wings[0] as Group).rotation.z = 0;
+      (owl.wings[1] as Group).rotation.z = 0;
+      if (awakeT >= 1) owlAwakeFrom = -1;
+    }
+
+    poseLuma(ts);
+
+    // The jar: a little brighter with every light, never a number.
+    const glowWant = caught === 0 ? 0 : Math.min(0.35 + caught * 0.03, 0.95);
+    jarGlow += (glowWant - jarGlow) * Math.min(1, dt / 300);
+    station.glow.opacity = jarGlow * (reduced ? 1 : 0.9 + 0.1 * Math.sin(ts * 0.004));
+    station.glowSprite.scale.setScalar(0.8 + Math.min(caught, 40) * 0.018);
+    const lit = Math.min(caught, station.motes.length);
+    station.motes.forEach((m, k) => {
+      m.visible = k < lit;
+      if (m.visible && !reduced) m.position.y = 0.1 + ((k * 0.37) % 1) * 0.28 + Math.sin(ts * 0.003 + k * 2.1) * 0.03;
     });
 
-    // Animate caught fireflies inside Firefly Jar (countable!)
-    for (let i = 0; i < caughtFireflies.length; i++) {
-      const m = caughtFireflies[i]!;
-      m.mesh.position.y = m.baseY + Math.sin(now * 0.0035 + m.phase) * 0.015;
-      m.mesh.position.x = m.baseX + Math.cos(now * 0.0025 + m.phase) * 0.012;
-      const pulse = 1 + Math.sin(now * 0.006 + m.phase) * 0.12;
-      m.mesh.scale.set(pulse, pulse, pulse);
+    // Decorative fireflies: only outside the measured trial loop.
+    decorLevel += (decorTarget - decorLevel) * Math.min(1, dt / 350);
+    const ffMat = forest.fireflies.material as PointsMaterial;
+    ffMat.opacity = decorLevel * 0.95 * (1 - 0.7 * s);
+    forest.fireflies.visible = decorLevel > 0.01;
+    if (forest.fireflies.visible && !reduced) {
+      const attr = forest.fireflies.geometry.getAttribute("position") as Float32BufferAttribute;
+      const b = forest.fireflyBase;
+      for (let i = 0; i < b.length / 3; i++) {
+        attr.setXYZ(
+          i,
+          (b[i * 3] as number) + Math.sin(ts * 0.0006 + i) * 0.5,
+          (b[i * 3 + 1] as number) + Math.sin(ts * 0.0011 + i * 2.1) * 0.3,
+          (b[i * 3 + 2] as number) + Math.cos(ts * 0.0007 + i * 1.3) * 0.4,
+        );
+      }
+      attr.needsUpdate = true;
     }
 
-    // Animate caught owls inside Owl Jar (countable!)
-    for (let i = 0; i < caughtOwls.length; i++) {
-      const m = caughtOwls[i]!;
-      m.mesh.position.y = m.baseY + Math.sin(now * 0.003 + m.phase) * 0.014;
-      m.mesh.position.x = m.baseX + Math.cos(now * 0.002 + m.phase) * 0.010;
-      const pulse = 1 + Math.sin(now * 0.005 + m.phase) * 0.10;
-      m.mesh.scale.set(pulse, pulse, pulse);
-    }
-
-    // Animate independent flying projectiles into their respective jars
-    for (let i = activeProjectiles.length - 1; i >= 0; i--) {
-      const p = activeProjectiles[i]!;
-      p.progress += dt * 3.8;
-      const t = Math.min(p.progress, 1);
-      p.mesh.position.lerpVectors(p.startPos, p.targetPos, t);
-      p.mesh.position.y += Math.sin(t * Math.PI) * 0.55;
-      const scale = Math.max(0.12, 1 - t * 0.75);
-      p.mesh.scale.set(scale, scale, scale);
-
-      if (t >= 1) {
-        scene.remove(p.mesh);
-        activeProjectiles.splice(i, 1);
-        if (p.kind === "firefly") {
-          addCaughtFirefly();
-        } else {
-          addCaughtOwl();
+    // The end: the cork lifts and the caught lights drift back up into the night.
+    const ending = state === "celebration" || state === "done";
+    lidOpen += ((ending ? 1 : 0) - lidOpen) * Math.min(1, dt / 380);
+    // The cork hops off in an arc and comes to rest on the grass beside the stump.
+    station.lid.position.set(0.66 * lidOpen, 0.58 - 0.9 * lidOpen + 0.75 * Math.sin(Math.PI * lidOpen), 0.12 * lidOpen);
+    station.lid.rotation.z = -1.75 * lidOpen;
+    if (ending && !reduced) {
+      if (ts >= nextRise) {
+        nextRise = ts + 110;
+        jarMouth(mouth);
+        sparkles.spawn(mouth, 2, RISE, 0.5, 2600, 1.1);
+      }
+      if (ts >= nextFirework) {
+        nextFirework = ts + 560 + Math.random() * 320;
+        for (let b = 0; b < 2; b++) {
+          tmp.set((Math.random() - 0.5) * 9, 3.6 + Math.random() * 1.4, -2.5 - Math.random() * 2);
+          const c = FIRE[Math.floor(Math.random() * FIRE.length)] as Color;
+          fireworks.spawn(tmp, 40, [c, c, WHITE], 4.0, 1500, -0.9, true);
         }
       }
     }
+    sparkles.update(dt);
+    fireworks.update(dt);
 
-    // Subtle breathing pulse for target perch circle plate
-    if (perchPlateGroup.visible) {
-      const plateBreath = 1 + Math.sin(now * 0.012) * 0.08;
-      platePulse.scale.set(plateBreath, plateBreath, 1);
-    }
-    // Idle flutter while waiting on branch
-    if (activeStimulusType === "go") {
-      const pulse = 1 + Math.sin(now * 0.018) * 0.15;
-      fireflyGroup.scale.set(pulse, pulse, pulse);
-      fireflyWingL.rotation.z = Math.sin(now * 0.045) * 0.6;
-      fireflyWingR.rotation.z = -Math.sin(now * 0.045) * 0.6;
-    } else if (activeStimulusType === "nogo") {
-      cAntL.rotation.z = -0.55 + Math.sin(now * 0.035) * 0.22;
-      cAntR.rotation.z = -0.22 + Math.cos(now * 0.035) * 0.22;
-    } else if (activeStimulusType === "go_audio") {
-      const pulse = 1 + Math.sin(now * 0.014) * 0.08;
-      owlGroup.scale.set(pulse, pulse, pulse);
-      tuftL.rotation.z = 0.35 + Math.sin(now * 0.012) * 0.12;
-      tuftR.rotation.z = -0.35 - Math.sin(now * 0.012) * 0.12;
+    // Gentle camera drift only on the start, break and end screens.
+    const drift = !reduced && (state === "intro" || state === "between" || ending);
+    const wantX = drift ? camBase.x + Math.sin(ts * 0.00025) * 0.3 : camBase.x;
+    if (Math.abs(camera.position.x - wantX) > 0.0005) {
+      camera.position.x = drift ? wantX : camBase.x + (camera.position.x - camBase.x) * 0.9;
+      if (!drift && Math.abs(camera.position.x - camBase.x) < 0.001) camera.position.x = camBase.x;
+      camera.lookAt(target);
+      camera.updateMatrixWorld();
+      updateTargets();
     }
 
-    // Lightning light surge decay back to standard night-forest ambient
-    if (lightningIntensity > 0) {
-      lightningIntensity = Math.max(0, lightningIntensity - dt * 2.8);
-      moonLight.intensity = 2.4 + lightningIntensity * 9.6;
-      ambientFill.intensity = 1.2 + lightningIntensity * 3.8;
-      hemiLight.intensity = 2.7 + lightningIntensity * 2.8;
-    }
-
-    // Atmospheric Storm Director: flocks of birds and lightning throughout the entire gameplay!
-    if (!destroyed && runner.state !== "celebration" && runner.state !== "done") {
-      if (now >= nextBirdFlockTime) {
-        spawnBirdFlock(3 + Math.floor(Math.random() * 3));
-        nextBirdFlockTime = now + 4000 + Math.random() * 3500;
-      }
-
-      if (now >= nextLightningTime) {
-        triggerLightningAndThunder();
-        nextLightningTime = now + 6000 + Math.random() * 4500;
-      }
-    }
-
-    // Animate & update bird flocks
-    for (let i = birds.length - 1; i >= 0; i--) {
-      const b = birds[i]!;
-      b.mesh.position.x += b.speedX * dt;
-      b.mesh.position.y = b.baseY + Math.sin(now * 0.008 + b.flapPhase) * 0.16;
-      b.wingL.rotation.z = Math.sin(now * b.flapSpeed + b.flapPhase) * 0.85;
-      b.wingR.rotation.z = -Math.sin(now * b.flapSpeed + b.flapPhase) * 0.85;
-
-      if (Math.abs(b.mesh.position.x) > 8.0) {
-        scene.remove(b.mesh);
-        birds.splice(i, 1);
-      }
+    // Practice hand on the thing to tap (never on a cricket); bubble above Luma.
+    if (active && active.practice && active.type !== "nogo" && !active.responded) {
+      const p = toScreen(active.target);
+      ui.hand(true, p.x, p.y + p.r * 0.25);
+    } else ui.hand(false);
+    if (viewW >= viewH) {
+      // Landscape: the bubble sits on the grass in front of the tree, right of the jar, clear of every perch.
+      head.copy(station.root.position).setX(station.root.position.x + 0.62).setY(0.5).project(camera);
+      ui.place(((head.x + 1) / 2) * viewW + 14, viewH - 26, "side");
+    } else {
+      // Portrait: a caption over the crown of the tree, above the top perches.
+      const top = toScreen((perches[1] as (typeof perches)[number]).centre);
+      ui.place(viewW / 2, top.y - top.r - 10, "top");
     }
 
     renderer.render(scene, camera);
-  }
-
-  rafId = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(frame);
 
   return {
-    destroy() {
+    destroy: () => {
       destroyed = true;
-      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(raf);
       ro.disconnect();
-      ui.root.removeEventListener("pointerdown", onPointerDown);
-      for (const p of activeProjectiles) {
-        scene.remove(p.mesh);
-      }
-      activeProjectiles.length = 0;
+      ui.root.removeEventListener("pointerdown", onDown);
+      ui.root.removeEventListener("contextmenu", noMenu);
+      canvas.removeEventListener("webglcontextlost", onLost);
+      canvas.removeEventListener("webglcontextrestored", onRestored);
       audio.close();
-      ui.destroy();
+      const mats = new Set<Material>();
+      scene.traverse((o) => {
+        const m = o as Mesh;
+        if (m.geometry) m.geometry.dispose();
+        const mat = (m as { material?: Material | Material[] }).material;
+        if (Array.isArray(mat)) mat.forEach((x) => mats.add(x));
+        else if (mat) mats.add(mat);
+      });
+      mats.forEach((m) => {
+        (m as { map?: { dispose(): void } | null }).map?.dispose();
+        m.dispose();
+      });
+      grad.dispose();
+      forest.glow.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
+      ui.destroy();
+      // React StrictMode mounts twice in development: only the instance that wrote the dataset last clears it.
+      if (parent.dataset.swOwner === owner) {
+        delete parent.dataset.phase;
+        delete parent.dataset.stim;
+        delete parent.dataset.block;
+        delete parent.dataset.targets;
+        delete parent.dataset.swOwner;
+      }
     },
   };
 }
