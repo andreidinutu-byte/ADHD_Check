@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type PocketBase from "pocketbase";
 import { attempt } from "@/lib/attempt";
 import { addMission, deleteMission, setMissionDone, type MissionRow } from "@/lib/data/parent";
 import { MISSIONS } from "@/lib/missions";
@@ -16,7 +16,7 @@ export function Missions({
   missions,
   onChange,
 }: {
-  client: SupabaseClient;
+  client: PocketBase;
   childId: string;
   missions: MissionRow[];
   onChange: (missions: MissionRow[]) => void;

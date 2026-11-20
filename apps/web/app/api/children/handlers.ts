@@ -1,8 +1,8 @@
 import { isUuid } from "../../../lib/uuid";
 
 // DELETE /api/children/<id> (FR-41): the parent deletes one child profile. The database deletes its
-// sessions, trials, scores and play links with it (on delete cascade, tested in supabase/tests).
-// deleteChild runs as the logged-in parent, so RLS lets a parent delete only their own child.
+// sessions, trials, scores and play links with it (relations with cascadeDelete in pocketbase/schema.json).
+// deleteChild runs as the logged-in parent, so the API rules let a parent delete only their own child.
 // No JSON check needed: a cross-site page can send DELETE only through fetch, which CORS stops.
 // Errors are logged by code only: no ids.
 

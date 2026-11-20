@@ -4,13 +4,14 @@
 //   node scripts/demo-rehearsal.mts --base https://<app url>
 //   node scripts/demo-rehearsal.mts --base http://localhost:3000 --env path/to/other.env --signup
 //
-// It reads NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, DEMO_PARENT_EMAIL and DEMO_PARENT_PASSWORD
-// from the environment, else from apps/web/.env.local (or --env). The demo account must exist and be confirmed;
-// --signup creates it first (local stack only, where email confirmation is off).
+// It reads NEXT_PUBLIC_PB_URL (default: the public PocketBase URL), DEMO_PARENT_EMAIL and DEMO_PARENT_PASSWORD
+// from the environment, else from apps/web/.env.local (or --env). The demo account must exist; --signup creates
+// it first (there is no email confirmation). The live-result step needs a global EventSource (Node 24 with
+// --experimental-eventsource); without one it is reported as a warning and the result is polled instead.
 // It ends with Reset demo, so the account is left with the synthetic seed only. Needs Node 23.6+ (type stripping).
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
+import PocketBase from "pocketbase";
 import { validSessionMetrics } from "../packages/contracts/src/fixtures/session-metrics.valid.ts";
 import { PROCESSING_CONSENT_VERSION } from "../apps/web/lib/processing-consent.ts";
 
@@ -37,11 +38,10 @@ function readEnv(): Record<string, string> {
 const fileEnv = readEnv();
 const env = (name: string) => process.env[name] || fileEnv[name] || "";
 
-const supabaseUrl = env("NEXT_PUBLIC_SUPABASE_URL");
-const publishableKey = env("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+const pbUrl = env("NEXT_PUBLIC_PB_URL") || "https://unihub-db.andreidobrin.com";
 const email = env("DEMO_PARENT_EMAIL");
 const password = env("DEMO_PARENT_PASSWORD"); // check-secrets: allow
-const missing = Object.entries({ NEXT_PUBLIC_SUPABASE_URL: supabaseUrl, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: publishableKey, DEMO_PARENT_EMAIL: email, DEMO_PARENT_PASSWORD: password }) // check-secrets: allow
+const missing = Object.entries({ DEMO_PARENT_EMAIL: email, DEMO_PARENT_PASSWORD: password }) // check-secrets: allow
   .filter(([, v]) => !v)
   .map(([k]) => k);
 if (missing.length) {
@@ -79,7 +79,7 @@ try {
 }
 step(res.ok, "landing page loads", `${res.status}`);
 
-// 2. The parent logs in through the app (cookie session) and directly (for reads under RLS, as the pages do).
+// 2. The parent logs in through the app (cookie session) and directly (for reads under API rules, as the pages do).
 if (args.includes("--signup")) {
   res = await fetch(`${base}/api/auth/signup`, { method: "POST", headers: json, body: JSON.stringify({ email, password }) }); // check-secrets: allow
   step(res.status < 500, "sign up demo account", `${res.status}`);
@@ -87,12 +87,14 @@ if (args.includes("--signup")) {
 res = await fetch(`${base}/api/auth/login`, { method: "POST", headers: json, body: JSON.stringify({ email, password }) }); // check-secrets: allow
 const cookie = res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
 if (!step(res.ok && cookie.length > 0, "parent logs in", `${res.status}`)) {
-  console.log("\nCheck DEMO_PARENT_EMAIL and DEMO_PARENT_PASSWORD, and that the account is confirmed."); // check-secrets: allow
+  console.log("\nCheck DEMO_PARENT_EMAIL and DEMO_PARENT_PASSWORD, or run with --signup."); // check-secrets: allow
   process.exit(1);
 }
-const db = createClient(supabaseUrl, publishableKey, { auth: { persistSession: false, autoRefreshToken: false } }); // check-secrets: allow
-const signIn = await db.auth.signInWithPassword({ email, password }); // check-secrets: allow
-step(!signIn.error, "data client logs in", signIn.error?.message ?? "");
+const db = new PocketBase(pbUrl);
+db.autoCancellation(false);
+const signIn = await db.collection("users").authWithPassword(email, password).then(() => "", (e: Error) => e.message); // check-secrets: allow
+step(!signIn, "data client logs in", signIn);
+const parentId = db.authStore.record?.id ?? "";
 
 // 3. Demo account and Reset demo (FR-55, FR-56).
 res = await fetch(`${base}/api/demo`, { headers: { cookie } });
@@ -104,40 +106,37 @@ res = await reset();
 step(res.ok, "Reset demo", `${res.status} ${JSON.stringify(await readJson(res))}`);
 
 // 4. The seeded data a parent sees: child, four weeks of results, missions.
-const children = await db.from("children").select("id, nickname").order("created_at");
-const child = children.data?.[0];
-step(!!child, "demo child listed", child ? child.nickname : (children.error?.message ?? "none"));
+const children = await db.collection("children").getFullList({ sort: "created_at", fields: "id,nickname" });
+const child = children[0];
+step(!!child, "demo child listed", child ? String(child.nickname) : "none");
 if (!child) process.exit(1);
-const seeded = await db.from("sessions").select("id, started_at, scores(band)").eq("child_id", child.id);
-step((seeded.data?.length ?? 0) >= 10, "results history", `${seeded.data?.length ?? 0} sessions`);
-const missions = await db.from("missions").select("id, status").eq("child_id", child.id);
-step((missions.data?.length ?? 0) > 0, "missions", `${missions.data?.length ?? 0}`);
+const seeded = await db.collection("sessions").getFullList({ filter: `child = "${child.id}"`, fields: "id,started_at,score" });
+step(seeded.length >= 10, "results history", `${seeded.length} sessions`);
+const missions = await db.collection("missions").getFullList({ filter: `child = "${child.id}"`, fields: "id,status" });
+step(missions.length > 0, "missions", `${missions.length}`);
 
 // 5. Live result (FR-39): subscribe before the game uploads, as the QR page does.
 let delivered: (id: string) => void = () => {};
 const seen = new Set<string>();
-const channel = db
-  .channel(`rehearsal-${Date.now()}`)
-  .on("postgres_changes", { event: "INSERT", schema: "public", table: "scores" }, (payload) => {
-    const id = (payload.new as { session_id?: string }).session_id;
-    if (id) {
-      seen.add(id);
-      delivered(id);
-    }
-  });
-const subscribed = await new Promise<string>((resolve) => {
-  channel.subscribe((status) => {
-    if (status !== "JOINING") resolve(status);
-  });
-  setTimeout(() => resolve("TIMED_OUT"), 10_000);
-});
-step(subscribed === "SUBSCRIBED", "live results subscribed", subscribed);
-await new Promise((r) => setTimeout(r, 3000)); // Realtime can miss rows written in the first seconds.
+let unsubscribe: (() => Promise<void>) | null = null;
+if (typeof (globalThis as { EventSource?: unknown }).EventSource === "function") {
+  unsubscribe = await db
+    .collection("sessions")
+    .subscribe("*", (e) => {
+      if (e.action !== "create") return;
+      seen.add(e.record.id);
+      delivered(e.record.id);
+    })
+    .catch((e: Error) => (step(false, "live results subscribed", e.message), null));
+  if (unsubscribe) step(true, "live results subscribed");
+} else {
+  warn("live results", "no global EventSource in this Node; run with --experimental-eventsource");
+}
 
 // 6. QR: the parent agrees to processing once, as the parent page asks (NFR-04), then creates a play link
 // and the tablet opens it (FR-01, FR-32).
-const agreed = await db.from("processing_consents").insert({ version: PROCESSING_CONSENT_VERSION });
-step(!agreed.error, "parent consents to processing", agreed.error?.message ?? "");
+const agreed = await db.collection("processing_consents").create({ parent: parentId, version: PROCESSING_CONSENT_VERSION }).then(() => "", (e: Error) => e.message);
+step(!agreed, "parent consents to processing", agreed);
 res = await fetch(`${base}/api/play-links`, { method: "POST", headers: { ...json, cookie }, body: JSON.stringify({ child_id: child.id }) });
 const link = await readJson(res);
 const code = typeof link.code === "string" ? link.code : "";
@@ -154,17 +153,17 @@ const session = { ...validSessionMetrics, child_id: child.id, session_id: sessio
 const live = new Promise<boolean>((resolve) => {
   if (seen.has(sessionId)) resolve(true);
   delivered = (id) => id === sessionId && resolve(true);
-  setTimeout(() => resolve(false), 15_000);
+  setTimeout(() => resolve(false), unsubscribe ? 15_000 : 0);
 });
 res = await fetch(`${base}/api/sessions`, { method: "POST", headers: { ...json, authorization: `Bearer ${code}` }, body: JSON.stringify(session) });
 const saved = await readJson(res);
 step(res.status === 201, "game uploads the session", `${res.status} band=${String(saved.band)}`);
-step(await live, "result arrives live on the parent screen");
-const result = await db.from("sessions").select("id, scores(band, reasons)").eq("id", sessionId).maybeSingle();
-step(!!result.data, "parent reads the new result", result.error?.message ?? "");
+if (unsubscribe) step(await live, "result arrives live on the parent screen");
+const result = await db.collection("sessions").getOne(sessionId, { fields: "id,score" }).then((r) => r, () => null);
+step(!!result?.score, "parent reads the new result");
 res = await fetch(`${base}/api/sessions`, { method: "POST", headers: { ...json, authorization: `Bearer ${code}` }, body: JSON.stringify({ ...session, session_id: randomUUID() }) });
 step(res.status === 401, "used link cannot upload again", `${res.status}`);
-await db.removeChannel(channel);
+if (unsubscribe) await unsubscribe();
 
 // 8. Billing (FR-45, FR-46): a missing Stripe setup is reported, not failed.
 res = await fetch(`${base}/api/stripe/checkout`, { method: "POST", headers: { ...json, cookie }, body: "{}" });
@@ -175,7 +174,7 @@ else step(res.ok && typeof checkout.url === "string", "Stripe checkout opens", `
 // 9. Leave the account as the demo expects it.
 res = await reset();
 step(res.ok, "Reset demo (clean up)", `${res.status}`);
-await db.auth.signOut();
+db.authStore.clear();
 
 console.log(failures ? `\n${failures} step(s) failed.` : "\nAll steps passed.");
 process.exit(failures ? 1 : 0);

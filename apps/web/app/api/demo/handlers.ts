@@ -1,6 +1,6 @@
 // Demo account (FR-55, FR-56). The demo account is the one whose email is DEMO_PARENT_EMAIL (server env).
 // GET /api/demo tells the page whether to show the Reset demo button; POST /api/demo/reset replaces the
-// account's data with the synthetic seed (seed_demo, supabase/migrations). Any other account gets 403.
+// account's data with the synthetic seed (seed.ts). Any other account gets 403.
 
 type User = { id: string; email?: string | null };
 type Deps = { getUser(): Promise<User | null>; demoEmail?: string; seed(parentId: string): Promise<number> };

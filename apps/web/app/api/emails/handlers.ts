@@ -7,7 +7,7 @@ import type { RateLimiter } from "../../../lib/rate-limit";
 // carry only the dashboard link (no result, no nickname), and answer 200 with the email outcome even when
 // sending fails, so the action that triggered them is never undone. Nothing is logged but error codes.
 
-// emailConfirmed: the address passed Supabase's confirmation, so an email goes only to a mailbox its owner proved.
+// emailConfirmed: the address is verified in PocketBase (users.verified), so an email goes only to a mailbox its owner proved.
 type Parent = { id: string; email: string; emailConfirmed: boolean };
 type Deps = {
   email: EmailSender;

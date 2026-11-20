@@ -25,18 +25,34 @@ and on success restarts the app with the new build (`next start` in `apps/web`, 
 
 ### Server-side environment variables
 
-The server has no Supabase, Stripe or Resend keys yet, so the pages load but login, checkout and emails answer with errors. Values are set on the server, never in the repo. Send the variable names and values to Andrei privately (not in an issue or commit). Set today:
+Values are set on the server, never in the repo. Send variable names and values to Andrei privately (not in an issue or commit). Set today:
 
 | Name | Value |
 |---|---|
 | `SITE_URL` | `https://unihub.andreidobrin.com` |
-| `PB_URL` | the PocketBase URL (server-side reads) |
+| `PB_URL` | the database's address for server code (a private address on the server) |
+| `NEXT_PUBLIC_PB_URL` | `https://unihub-db.andreidobrin.com` |
+| `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD` | the app's own PocketBase superuser |
 
-`NEXT_PUBLIC_*` variables are read at build time, so a change to one is live after the next push to `main`.
+Not set: Stripe and Resend (the email service). Without them checkout answers 503 (no paid PDF report) and no email is sent; everything else works. The server's settings are copied in before each build, so `NEXT_PUBLIC_*` values are compiled into the next deploy.
 
 ## 2. Database: PocketBase
 
-The app code in this repo still talks to Supabase. PocketBase is a separate database the team can use for anything new (or to replace Supabase later); nothing in the app uses it yet.
+The app stores everything in PocketBase (it used Supabase until 2026-11-20). Parents are PocketBase `users`. There is no email confirmation (no email service), so a new account can log in at once.
+
+| Collection | What | Who can read / write |
+|---|---|---|
+| `users` | parents (email + password) | each parent their own record |
+| `children` | nickname, birth year | the parent: read, add, edit, delete |
+| `sessions` | one played session: metrics, trials, `score` (ScoreResult) | the parent reads; only the server writes |
+| `missions` | parent-chosen activities | the parent: read, add, mark done, delete |
+| `processing_consents` | the parent's consent, per text version | the parent: read, add (never change) |
+| `report_purchases` | Stripe checkouts of the paid report | the parent reads; only the server writes |
+| `play_links`, `waitlist` | QR links (code hash only), early-access emails | server only |
+
+Deleting a parent or a child deletes everything under it. The collections and their API rules are defined in `pocketbase/schema.json`; `apps/web/lib/pocketbase-schema.test.ts` fails if a rule is loosened. **To change the schema:** edit `scripts/pb-schema.gen.mjs`, run `node scripts/pb-schema.gen.mjs`, then `npm run db:schema` (superuser needed), and commit both files before pushing code that needs the change.
+
+Code: `apps/web/lib/pocketbase/` (`client.ts` for Client Components, `server.ts` for the logged-in parent on the server, `admin.ts` for superuser writes). **Local development uses this same live database:** use throwaway accounts and synthetic data only.
 
 PocketBase stores records in **collections** (tables). Every record has an `id` (15 characters, automatic). API rules on each collection decide who may list, view, create, update and delete: `""` means anyone, `null` means superusers only, or a filter such as `@request.auth.id != ""` (any logged-in user).
 
@@ -46,7 +62,7 @@ PocketBase stores records in **collections** (tables). Every record has an `id` 
 | Admin UI (people) | https://unihub-db.andreidobrin.com/_/ (log in with the superuser) |
 | Superuser | ask Andrei; put the values in `.env.local` only |
 | Rate limits per IP | 10 logins / 10 s, 20 anonymous creates / 5 s, 300 requests / 10 s (answers 429 above that) |
-| Collections today | `notes` (anyone can read, superuser writes; a demo) |
+| Collections | see the table above; `notes` is an old demo collection (anyone can read) |
 
 ### The easy way: `npm run db` (no dependencies, prints JSON)
 

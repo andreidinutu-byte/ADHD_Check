@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { clientKey, createSupabaseRateLimiter } from "./rate-limit";
+import { describe, expect, it } from "vitest";
+import { clientKey, createMemoryRateLimiter, sharedRateLimiter } from "./rate-limit";
 
 function requestFrom(forwardedFor?: string) {
   const headers: Record<string, string> = forwardedFor ? { "x-forwarded-for": forwardedFor } : {};
@@ -22,27 +21,59 @@ describe("clientKey (NFR-13)", () => {
   });
 });
 
-describe("SupabaseRateLimiter", () => {
-  function fakeClient(result: { data: unknown; error: { message: string } | null }) {
-    const rpc = vi.fn().mockResolvedValue(result);
-    return { client: { rpc } as unknown as SupabaseClient, rpc };
-  }
+describe("createMemoryRateLimiter (NFR-13)", () => {
+  const RULE = { limit: 2, windowSeconds: 60 };
 
-  it("calls take_rate_limit with the key, the limit and the window", async () => {
-    const { client, rpc } = fakeClient({ data: true, error: null });
-    const allowed = await createSupabaseRateLimiter(client, { limit: 5, windowSeconds: 60 }).take("sessions:abc");
-
-    expect(allowed).toBe(true);
-    expect(rpc).toHaveBeenCalledWith("take_rate_limit", { p_bucket: "sessions:abc", p_limit: 5, p_window_seconds: 60 });
+  it("allows up to the limit in a window, then refuses", async () => {
+    const limiter = createMemoryRateLimiter(RULE);
+    expect(await limiter.take("k")).toBe(true);
+    expect(await limiter.take("k")).toBe(true);
+    expect(await limiter.take("k")).toBe(false);
   });
 
-  it("answers false when the limit is reached", async () => {
-    const { client } = fakeClient({ data: false, error: null });
-    expect(await createSupabaseRateLimiter(client, { limit: 5, windowSeconds: 60 }).take("k")).toBe(false);
+  it("counts each key on its own", async () => {
+    const limiter = createMemoryRateLimiter(RULE);
+    await limiter.take("a");
+    await limiter.take("a");
+    expect(await limiter.take("a")).toBe(false);
+    expect(await limiter.take("b")).toBe(true);
   });
 
-  it("throws on a database error", async () => {
-    const { client } = fakeClient({ data: null, error: { message: "connection refused" } });
-    await expect(createSupabaseRateLimiter(client, { limit: 5, windowSeconds: 60 }).take("k")).rejects.toThrow();
+  it("starts a new window once the window has passed", async () => {
+    let t = 0;
+    const limiter = createMemoryRateLimiter(RULE, () => t);
+    await limiter.take("k");
+    await limiter.take("k");
+    expect(await limiter.take("k")).toBe(false);
+    t = 60_000;
+    expect(await limiter.take("k")).toBe(true);
+  });
+
+  it("uses the rule of the call instead of the default (weekly email: 1 in 8 days)", async () => {
+    let t = 0;
+    const limiter = createMemoryRateLimiter(RULE, () => t);
+    const weekly = { limit: 1, windowSeconds: 8 * 86_400 };
+    expect(await limiter.take("w", weekly)).toBe(true);
+    expect(await limiter.take("w", weekly)).toBe(false);
+    t = 7 * 86_400_000;
+    expect(await limiter.take("w", weekly)).toBe(false);
+    t = 8 * 86_400_000;
+    expect(await limiter.take("w", weekly)).toBe(true);
+  });
+
+  it("keeps a long window when another call with a short window comes in", async () => {
+    let t = 0;
+    const limiter = createMemoryRateLimiter(RULE, () => t);
+    const daily = { limit: 1, windowSeconds: 86_400 };
+    await limiter.take("cap", daily);
+    t = 120_000;
+    await limiter.take("other");
+    expect(await limiter.take("cap", daily)).toBe(false);
+  });
+});
+
+describe("sharedRateLimiter", () => {
+  it("is one limiter for the whole process", () => {
+    expect(sharedRateLimiter()).toBe(sharedRateLimiter());
   });
 });

@@ -2,8 +2,8 @@
 
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSessionResult, hasProcessingConsent, onNewScore, type SessionResult } from "@/lib/data/parent";
+import type PocketBase from "pocketbase";
+import { getSessionResult, hasProcessingConsent, listSessionIds, onNewScore, type SessionResult } from "@/lib/data/parent";
 import { createPlayLink, type Consent } from "@/lib/play-client";
 import { S } from "../strings";
 import { ProcessingConsent } from "./ProcessingConsent";
@@ -20,7 +20,7 @@ export function StartSession({
   knownSessions,
   onResult,
 }: {
-  client: SupabaseClient;
+  client: PocketBase;
   childId: string;
   knownSessions: string[];
   onResult: (result: SessionResult) => void;
@@ -64,8 +64,8 @@ export function StartSession({
     };
     const stop = onNewScore(client, (id) => void deliver(id));
     const poll = setInterval(async () => {
-      const { data } = await client.from("sessions").select("id").eq("child_id", childId);
-      for (const row of data ?? []) if (!known.current.has(row.id)) void deliver(row.id);
+      const ids = await listSessionIds(client, childId).catch(() => []);
+      for (const id of ids) if (!known.current.has(id)) void deliver(id);
     }, 4000);
     return () => {
       done = true;

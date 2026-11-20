@@ -1,20 +1,17 @@
 // Game sessions from the child's device. Logic and tests live in handler.ts.
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseRateLimiter, SESSIONS_RATE_LIMIT } from "@/lib/rate-limit";
+import { createAdminPb } from "@/lib/pocketbase/admin";
+import { sharedRateLimiter } from "@/lib/rate-limit";
 import { handleSessionPost } from "./handler";
-import { createSupabaseSessionStore } from "./supabase-store";
+import { createPbSessionStore } from "./pb-store";
 
 export async function POST(request: Request) {
   let admin;
   try {
-    admin = createAdminClient();
+    admin = await createAdminPb();
   } catch {
-    // No Supabase settings (a teammate running the app with no .env.local): store nothing.
+    // No PocketBase admin settings (a teammate running the app with no .env.local): store nothing.
     console.error("[sessions] failed", { error: "storage_unavailable" });
     return Response.json({ error: "storage_unavailable" }, { status: 503 });
   }
-  return handleSessionPost(request, {
-    store: createSupabaseSessionStore(admin),
-    rateLimiter: createSupabaseRateLimiter(admin, SESSIONS_RATE_LIMIT),
-  });
+  return handleSessionPost(request, { store: createPbSessionStore(admin), rateLimiter: sharedRateLimiter() });
 }

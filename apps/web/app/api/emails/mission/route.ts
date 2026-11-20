@@ -1,28 +1,35 @@
 // FR-50 "new mission" email. Logic and tests in ../handlers.ts.
 import { createResendSender } from "@/lib/email/resend";
-import { createSupabaseRateLimiter } from "@/lib/rate-limit";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminPb } from "@/lib/pocketbase/admin";
+import { q } from "@/lib/pocketbase/config";
+import { sharedRateLimiter } from "@/lib/rate-limit";
 import { EMAILS_RATE_LIMIT, handleMissionEmail } from "../handlers";
-import { getParent } from "../parent";
+import { getEmailParent } from "../parent";
 
 export async function POST(request: Request) {
-  const { supabase, parent } = await getParent();
-  let admin;
+  let admin, parent;
   try {
-    admin = createAdminClient();
+    admin = await createAdminPb();
+    parent = await getEmailParent(admin);
   } catch {
     console.error("[emails] failed", { error: "storage_unavailable" });
     return Response.json({ error: "storage_unavailable" }, { status: 503 });
   }
+  const limiter = sharedRateLimiter();
   return handleMissionEmail(request, {
     email: createResendSender(),
-    rateLimiter: createSupabaseRateLimiter(admin, EMAILS_RATE_LIMIT),
+    rateLimiter: { take: (key) => limiter.take(key, EMAILS_RATE_LIMIT) },
     siteUrl: process.env.SITE_URL,
     getParent: async () => parent,
-    // RLS: the parent's own client only sees their own missions.
+    // The superuser client sees every mission, so the read is filtered on the parent's id as well.
     missionIsOwn: async (id) => {
-      const { data, error } = await supabase.from("missions").select("id").eq("id", id).maybeSingle();
-      return !error && !!data;
+      if (!parent) return false;
+      try {
+        await admin.collection("missions").getFirstListItem(`id = ${q(id)} && parent = ${q(parent.id)}`, { fields: "id" });
+        return true;
+      } catch {
+        return false;
+      }
     },
   });
 }

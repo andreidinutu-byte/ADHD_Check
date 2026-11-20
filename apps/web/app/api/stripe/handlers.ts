@@ -62,12 +62,12 @@ export type CheckoutDeps = {
   priceId: string | undefined;
   // SITE_URL: the public address of the site, the only source of the return URLs (never the request origin).
   siteUrl: string | undefined;
-  // The session as the logged-in parent sees it (RLS): null for another parent's session. band is null
+  // The session as the logged-in parent sees it (API rules): null for another parent's session. band is null
   // while the session has no result.
   getOwnSession(sessionId: string): Promise<{ childId: string; band: string | null } | null>;
   // Whether this parent already holds a paid purchase of this report.
   isPaid(sessionId: string): Promise<boolean>;
-  // Stripe Checkout Session ids of this parent's pending purchases of this report, newest first (RLS).
+  // Stripe Checkout Session ids of this parent's pending purchases of this report, newest first (API rules).
   pendingCheckouts(sessionId: string): Promise<string[]>;
   // The Stripe Checkout Session id of this parent's newest failed or expired purchase of this report, or null.
   // It goes into the idempotency key (R5-3), so a new checkout after a failure is never answered with the dead one.
@@ -206,7 +206,7 @@ export type WebhookDeps = {
   startPurchase(input: { parentId: string; sessionId: string; checkoutId: string; lang: EmailLang }): Promise<string>;
   // SITE_URL: the public address of the site, the only source of the link in the email.
   siteUrl: string | undefined;
-  // The email of the parent who paid, from Supabase auth (never from the request or Stripe).
+  // The email of the parent who paid, from the PocketBase users record (never from the request or Stripe).
   getParentEmail(parentId: string): Promise<string | null>;
   // The child page of that parent's session where the report is downloaded, or null when there is none (not
   // scored, deleted). Only ids and the band leave this function; the band decides whether a report exists.

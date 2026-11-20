@@ -7,7 +7,7 @@ import { handleSessionPost, MAX_BODY_BYTES, MAX_OFF_TARGET_TAPS, MAX_TRIALS } fr
 import { InvalidPlayLinkError, type SessionStore } from "./store";
 import { DEFAULT_TASK, LanternWatchRunner, buildSessionMetrics, type RunData } from "@adhdcheck/game";
 
-// In-memory store: same contract as the Supabase store, no database needed.
+// In-memory store: same contract as the PocketBase store, no database needed.
 function memoryStore() {
   const saved = new Map<string, { codeHash: string; session: SessionMetrics; score: ScoreResult }>();
   const store: SessionStore = {

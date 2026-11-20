@@ -1,12 +1,19 @@
-import type { EmailOtpType, SupabaseClient } from "@supabase/supabase-js";
 import { safeNextPath } from "../../../lib/safe-next";
 
-// Parent auth with Supabase Auth (FR-30), server side. The pages that call these are Person 4's.
+// Parent auth (FR-30), server side, on PocketBase users (lib/pocketbase/auth.ts implements AuthClient).
 // Answers carry an error code only; emails and passwords are never logged.
 // POST bodies must be sent as application/json: a cross-site HTML form cannot set that header,
 // so another site cannot log a parent in or out behind their back.
 
-export type AuthClient = Pick<SupabaseClient["auth"], "signUp" | "signInWithPassword" | "signOut" | "verifyOtp">; // check-secrets: allow
+type EmailOtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
+type AuthAnswer = Promise<{ data: unknown; error: AuthError }>;
+type Credentials = { email: string; password: string }; // check-secrets: allow
+export type AuthClient = {
+  signUp(credentials: Credentials): AuthAnswer;
+  signInWithPassword(credentials: Credentials): AuthAnswer; // check-secrets: allow
+  signOut(): AuthAnswer;
+  verifyOtp(params: { token_hash: string; type: EmailOtpType }): AuthAnswer; // check-secrets: allow
+};
 type Deps = { auth: AuthClient };
 type AuthError = { code?: string; status?: number } | null;
 
@@ -34,7 +41,7 @@ function readCredentials(body: unknown): { email: string; password: string } | n
   return { email, password }; // check-secrets: allow
 }
 
-// Errors the routes do not map themselves: rate limit, or Supabase failing.
+// Errors the routes do not map themselves: rate limit, or the auth service failing.
 function commonError(route: string, error: NonNullable<AuthError>): Response {
   if (error.status === 429) {
     console.warn(`[auth] ${route} rate limited`, { code: error.code });
@@ -50,7 +57,7 @@ export async function handleSignUp(request: Request, { auth }: Deps): Promise<Re
   const credentials = readCredentials(read.body);
   if (!credentials) return fail(400, "invalid_input");
 
-  // An address that is already registered gets the same answer (Supabase does not reveal it).
+  // An address that is already registered gets the same answer (the adapter does not reveal it).
   const { error } = await auth.signUp(credentials);
   if (!error) return Response.json({ ok: true });
   if (error.code === "weak_password") return fail(400, "weak_password"); // check-secrets: allow
@@ -79,9 +86,8 @@ export async function handleLogout(request: Request, { auth }: Deps): Promise<Re
   return commonError("logout", error);
 }
 
-// Email link: {{ .SiteURL }}/api/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/
-// (set in the Supabase email templates). On failure the parent lands on the home page with
-// ?auth_error=confirm_failed, for the page to explain.
+// Email link handler. No email service is configured, so accounts need no confirmation and no link is
+// ever sent; the route stays so an old link lands on the home page with ?auth_error=confirm_failed.
 export async function handleConfirm(request: Request, { auth }: Deps): Promise<Response> {
   const url = new URL(request.url);
   const tokenHash = url.searchParams.get("token_hash"); // check-secrets: allow

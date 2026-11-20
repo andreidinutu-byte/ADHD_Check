@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type PocketBase from "pocketbase";
 import { useCallback, useEffect, useState } from "react";
 import { attempt } from "@/lib/attempt";
 import {
@@ -20,7 +20,7 @@ import { formatDate } from "./_components/ResultCard";
 
 type Row = Child & { last: { band: keyof typeof BAND_TEXT; at: string } | null };
 
-async function fetchRows(client: SupabaseClient): Promise<Row[]> {
+async function fetchRows(client: PocketBase): Promise<Row[]> {
   const children = await listChildren(client);
   return Promise.all(
     children.map(async (c) => {

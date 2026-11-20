@@ -5,7 +5,7 @@ const EMAIL = "parent.synthetic@example.test";
 const PASSWORD = "synthetic-pass-123"; // check-secrets: allow
 const CREDS = { email: EMAIL, password: PASSWORD }; // check-secrets: allow
 
-// Fake Supabase auth: each method answers like supabase-js ({ data, error }).
+// Fake auth client: each method answers { data, error }, as lib/pocketbase/auth.ts does.
 function fakeAuth(error: { code?: string; status?: number; message: string } | null = null) {
   const answer = vi.fn().mockResolvedValue({ data: {}, error });
   const auth = {
@@ -37,7 +37,7 @@ describe("POST /api/auth/signup (FR-30)", () => {
     expect(answer).toHaveBeenCalledWith(CREDS);
   });
 
-  it("rejects an invalid email with 400 without calling Supabase", async () => {
+  it("rejects an invalid email with 400 without calling the auth service", async () => {
     const { auth, answer } = fakeAuth();
     const res = await handleSignUp(postJson("/api/auth/signup", { email: "nope", password: PASSWORD }), { auth }); // check-secrets: allow
 
@@ -60,7 +60,7 @@ describe("POST /api/auth/signup (FR-30)", () => {
     expect(await res.json()).toEqual({ error: "weak_password" }); // check-secrets: allow
   });
 
-  it("answers 429 when Supabase rate limits", async () => {
+  it("answers 429 when the auth service rate limits", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const { auth } = fakeAuth({ code: "over_email_send_rate_limit", status: 429, message: "rate limit" });
     const res = await handleSignUp(postJson("/api/auth/signup", CREDS), { auth });

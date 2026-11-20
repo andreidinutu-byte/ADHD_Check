@@ -2,7 +2,7 @@
 name: adhdcheck-dev
 description: >-
   How to write code and UI for the ADHD Check hackathon project: the child game (Phaser,
-  TypeScript), the parent web app (Next.js, Supabase), scoring, camera and microphone
+  TypeScript), the parent web app (Next.js, PocketBase), scoring, camera and microphone
   features. Use before writing or reviewing any code, component, screen, text a user sees,
   or pull request in this repo. Covers the build workflow (contract and test first, then
   code, then check on the real device), coding rules, UI and UX rules for a children's game
@@ -23,7 +23,7 @@ The requirements live in `docs/02-specification-cahier-des-charges.md`. Your own
 ## 1. Confidentiality (check before every commit)
 
 Never commit:
-- **Secrets:** API keys, tokens, passwords, Supabase service-role key, Stripe secret or webhook secret, Resend key, connection strings. They live in Vercel environment variables and a local `.env.local` that is gitignored. `.env.example` holds the variable **names** only.
+- **Secrets:** API keys, tokens, passwords, PocketBase superuser credentials, Stripe secret or webhook secret, Resend key, connection strings. They live in the web server's environment (docs/HOSTING.md) and a local `.env.local` that is gitignored. `.env.example` holds the variable **names** only.
 - **Personal data:** a real child's or parent's name, email, photo, voice or session. Demo data are synthetic and look synthetic.
 - **Camera or microphone output:** no frame, image, landmark array, audio sample or transcript, ever, in the repo or in the database. Only the aggregates defined in the contract.
 - **Third-party confidential material:** documents from a client, a company, a notified body or a teammate's employer; internal emails; meeting notes with names.

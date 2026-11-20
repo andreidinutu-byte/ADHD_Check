@@ -2,7 +2,7 @@
 // request.text() inside handleWebhook, before any parsing, as Stripe signature verification requires.
 import { Resend } from "resend";
 import { createStripeClient } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminPb } from "@/lib/pocketbase/admin";
 import { getParentEmail, markEmailed, markNotPaid, markPaid, reportTargetFor, resendMailer, startPurchase } from "../billing";
 import { resolveEmailFrom } from "@/lib/email/sender";
 import { handleWebhook } from "../handlers";
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   try {
     if (!signingValue) throw new Error("STRIPE_WEBHOOK_SECRET is not set"); // check-secrets: allow
     stripe = createStripeClient();
-    admin = createAdminClient();
+    admin = await createAdminPb();
   } catch {
     console.error("[stripe] webhook failed", { error: "billing_not_configured" });
     return Response.json({ error: "billing_not_configured" }, { status: 503 });

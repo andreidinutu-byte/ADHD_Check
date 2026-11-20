@@ -6,8 +6,8 @@ import { pathAfterLogin } from "../../lib/safe-next";
 import { S } from "../parent/strings";
 import { buttonPrimary, field, postJson } from "../parent/_components/shell";
 
-// FR-30 parent login and sign-up, through the auth API routes (cookie session). After sign-up the parent
-// confirms by email (Supabase), then logs in.
+// FR-30 parent login and sign-up, through the auth API routes (cookie session). There is no email
+// confirmation: after sign-up the same credentials log the parent straight in.
 export function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -19,12 +19,9 @@ export function LoginForm() {
     setNote(null);
     const body = { email: String(form.get("email") ?? ""), password: String(form.get("password") ?? "") }; // check-secrets: allow
     try {
-      const res = await postJson(mode === "login" ? "/api/auth/login" : "/api/auth/signup", body);
-      if (res.ok && mode === "login") return router.replace(pathAfterLogin(window.location.search));
-      if (res.ok) {
-        setMode("login");
-        return setNote(S.login.checkEmail);
-      }
+      let res = await postJson(mode === "login" ? "/api/auth/login" : "/api/auth/signup", body);
+      if (res.ok && mode === "signup") res = await postJson("/api/auth/login", body);
+      if (res.ok) return router.replace(pathAfterLogin(window.location.search));
       const { error } = (await res.json().catch(() => ({}))) as { error?: string };
       setNote(error === "weak_password" ? S.login.weak : S.login.failed); // check-secrets: allow
     } catch {

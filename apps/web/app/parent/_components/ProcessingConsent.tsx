@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type PocketBase from "pocketbase";
 import { giveProcessingConsent } from "@/lib/data/parent";
 import { attempt } from "@/lib/attempt";
 import { S } from "../strings";
@@ -9,7 +9,7 @@ import { buttonPrimary, ErrorNote } from "./shell";
 
 // NFR-04: the parent's explicit consent to processing, asked once before the first game. Nothing is
 // pre-ticked, and the button stays off until the box is ticked. The server refuses a play link without it.
-export function ProcessingConsent({ client, onDone }: { client: SupabaseClient; onDone: () => void }) {
+export function ProcessingConsent({ client, onDone }: { client: PocketBase; onDone: () => void }) {
   const [ticked, setTicked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);

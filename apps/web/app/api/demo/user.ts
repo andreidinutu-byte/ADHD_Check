@@ -1,8 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { getParent } from "@/lib/pocketbase/server";
 
-// The logged-in parent from the verified session JWT (getClaims), or null.
+// The logged-in parent, verified with PocketBase, or null.
 export async function currentUser() {
-  const supabase = await createClient();
-  const claims = (await supabase.auth.getClaims()).data?.claims;
-  return claims ? { id: claims.sub, email: claims.email ?? null } : null;
+  return getParent();
 }

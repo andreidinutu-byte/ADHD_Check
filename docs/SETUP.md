@@ -11,7 +11,6 @@ One web app (Next.js, App Router, TypeScript strict) holds the parent pages and 
 | npm | 10 or newer (ships with Node) | |
 | Git | any recent | |
 | Browser | a current Chrome, Edge, Safari or Firefox | Test on the demo tablet too |
-| Supabase CLI | optional | Only Person 3, later. Not needed to run the app |
 
 ## 2. Install and run
 
@@ -44,20 +43,20 @@ packages/contracts/       zod schemas: SessionMetrics v1, ScoreResult v1   Perso
 packages/scoring/         pure TypeScript scoring (stub today)             Person 2
 packages/sensors/         camera and microphone on the device (stub)       Person 2
 packages/game/            Phaser game, mountGame(parent)                   Person 1
-supabase/migrations/      SQL and row-level security                       Person 3
+pocketbase/schema.json    database collections and API rules (docs/HOSTING.md)  Person 3
 ```
 
 Workspace packages are consumed as TypeScript source (no build step). `apps/web/next.config.ts` lists them in `transpilePackages`; add any new package there.
 
 ## 4. Environment variables
 
-Copy `.env.example` to `apps/web/.env.local` (gitignored) and fill the values there. Only names are committed. Never put the Supabase service-role key in browser code.
+Copy `.env.example` to `apps/web/.env.local` (gitignored) and fill the values there. Only names are committed. Never put the PocketBase superuser credentials in browser code. Without them the pages load, but saving sessions and play links answers 503. **Local development uses the live database** (there is one PocketBase for everyone): use throwaway test accounts and synthetic data only.
 
 | Name | Used by |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase client (public) |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase client (public) |
-| `SUPABASE_SERVICE_ROLE_KEY` | server only |
+| `NEXT_PUBLIC_PB_URL` | PocketBase address for the browser (public; defaults to the live one) |
+| `PB_URL` | server only: PocketBase address for server code (defaults to `NEXT_PUBLIC_PB_URL`) |
+| `PB_ADMIN_EMAIL`, `PB_ADMIN_PASSWORD` | server only: PocketBase superuser for the writes no parent may do (sessions, play links, purchases, waitlist, demo seed); ask Andrei |
 | `STRIPE_SECRET_KEY` | server only, Stripe test mode |
 | `STRIPE_WEBHOOK_SECRET` | server only |
 | `STRIPE_PRICE_ID` | server only: the test-mode **one-time** price of the detailed report, 9.99 EUR (D-05b), used by `POST /api/stripe/checkout` in `mode: "payment"`. A recurring price is refused by Stripe in that mode |
@@ -82,10 +81,10 @@ Decision D-05b (Hatem, 2026-10-20): the detailed PDF report costs 9.99 EUR, paid
 
    Copy its signing secret into `STRIPE_WEBHOOK_SECRET`. The subscription events (`customer.subscription.*`) are no longer used and can be removed from an existing endpoint. Locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired` prints a test signing secret.
 3. **Resend.** Verify the sending domain at https://resend.com/domains, then set `RESEND_API_KEY` and `EMAIL_FROM` (an address on that domain). With `onboarding@resend.dev` only the Resend account owner receives the email; Resend refuses other recipients with a 403, which the webhook logs as `email_rejected` without retrying.
-4. **Site address.** Set `SITE_URL` to the production address (Vercel environment variable).
-5. **Database.** Apply `supabase/migrations/20261021130000_report_purchases.sql`, then `supabase/migrations/20261021140000_drop_subscriptions.sql`, then `supabase/migrations/20261022090000_waitlist_new_row.sql`, then `supabase/migrations/20261022100000_purchase_not_paid_and_rate_limit_windows.sql` to the live project (`npx supabase db push`). Until the first one is applied, checkout and the report download answer 503.
+4. **Site address.** Set `SITE_URL` to the production address (server environment, docs/HOSTING.md; already set).
+5. **Database.** Nothing to do: `report_purchases` is in `pocketbase/schema.json` and already exists. Stripe and Resend have no keys yet, so checkout answers 503 and no email is sent.
 
-What the webhook does: it verifies the signature on the raw body (400 otherwise), marks the purchase paid once (only when `payment_status` is `paid` and the Checkout's one line item is `STRIPE_PRICE_ID`, read with `listLineItems`; any other item is logged at error level as `webhook needs review` with the Checkout id and nothing is recorded, so check the Stripe Dashboard for those; a replayed or concurrent event changes nothing), emails a link to the report page (built from `SITE_URL`, so `SITE_URL` must be set for the email to go out; the webhook logs `site_url_not_configured` otherwise) to the address the parent signed up with (Supabase auth), and records `emailed_at`. The email has fixed text and the link only: no PDF, nickname, result or disclaimer. A visitor who is not logged in is sent to the login page and returned to the linked page after login. A `checkout.session.completed` still `unpaid` records the pending purchase from the metadata. The email carries a Resend idempotency key per Checkout Session, so two deliveries of one event send one email. A temporary email failure answers 500 so that Stripe retries; a missing email configuration or a permanent refusal answers 200 with a logged code (never the address).
+What the webhook does: it verifies the signature on the raw body (400 otherwise), marks the purchase paid once (only when `payment_status` is `paid` and the Checkout's one line item is `STRIPE_PRICE_ID`, read with `listLineItems`; any other item is logged at error level as `webhook needs review` with the Checkout id and nothing is recorded, so check the Stripe Dashboard for those; a replayed or concurrent event changes nothing), emails a link to the report page (built from `SITE_URL`, so `SITE_URL` must be set for the email to go out; the webhook logs `site_url_not_configured` otherwise) to the address the parent signed up with (PocketBase users), and records `emailed_at`. The email has fixed text and the link only: no PDF, nickname, result or disclaimer. A visitor who is not logged in is sent to the login page and returned to the linked page after login. A `checkout.session.completed` still `unpaid` records the pending purchase from the metadata. The email carries a Resend idempotency key per Checkout Session, so two deliveries of one event send one email. A temporary email failure answers 500 so that Stripe retries; a missing email configuration or a permanent refusal answers 200 with a logged code (never the address).
 
 ## 5. Status of the stubs
 
@@ -107,8 +106,7 @@ What the webhook does: it verifies the signature on the raw body (400 otherwise)
 | zod | 4.6.7 | `^4.6.7` | MIT | npm registry |
 | Vitest | 5.0.5 | `^5.0.5` | MIT | npm registry |
 | ESLint | 10.13.0 | 9.x (landing page choice) | MIT | npm registry |
-| Supabase CLI | 2.121.0 | not installed by the repo | MIT | npm registry |
-| @supabase/supabase-js | 2.118.0 | not added yet | MIT | npm registry |
+| pocketbase (JS SDK) | 0.29.0 | `^0.29.0` (server PocketBase 0.40.6) | MIT | npm registry |
 | @mediapipe/tasks-vision | 1.1.1 | not added yet | Apache-2.0 | npm registry |
 | @ricky0123/vad-web | 0.0.31 | not added yet | ISC | npm registry |
 | stripe | 23.0.0 | `^22.6.2` | MIT | npm registry |
@@ -116,7 +114,7 @@ What the webhook does: it verifies the signature on the raw body (400 otherwise)
 | qrcode | 1.5.4 | not added yet | MIT | npm registry |
 | pnpm | 12.14.0 | not used | MIT | npm registry |
 
-Measured on the setup machine: Node 24.21.0, npm 11.19.0, pnpm 10.26.0, Supabase CLI 2.108.0, Git 2.54.0.
+Measured on the setup machine: Node 24.21.0, npm 11.19.0, pnpm 10.26.0 Git 2.54.0.
 
 To add a package not yet present, run `npm install <name> --workspace <folder>` (for example `npm install stripe --workspace apps/web`, or `@mediapipe/tasks-vision` and `@ricky0123/vad-web` in `packages/sensors`; `qrcode` also needs `@types/qrcode`). Check the licence first; no GPL and no non-commercial code.
 
@@ -126,7 +124,7 @@ The landing page merged first (PR 1) with a `package-lock.json` and npm scripts,
 
 ## 7. Known traps and fixes
 
-- **Database migrations are applied by hand, never with `supabase db push`.** The live project records only three migration versions in its history although later ones were applied by hand, so a push would fail. Apply the file in the SQL editor (or `apply_migration`) before merging the code that needs it. Details: `supabase/migrations/README.md`. Pending: `20261022110000_minigames_and_link_grace.sql`.
+- **Database changes go through `pocketbase/schema.json`.** Edit `scripts/pb-schema.gen.mjs`, run `node scripts/pb-schema.gen.mjs`, then `npm run db:schema` (needs the superuser) to apply it, and commit both files. Apply before pushing the code that needs it: a push to `main` goes live in minutes (docs/HOSTING.md). The Supabase SQL history was removed on 2026-11-20 and is in git history before that date.
 
 | Trap | Fix |
 |---|---|
@@ -134,6 +132,5 @@ The landing page merged first (PR 1) with a `package-lock.json` and npm scripts,
 | Game created twice in dev (React Strict Mode runs effects twice) | `GameCanvas.tsx` destroys the game in the effect cleanup and handles a mount that finishes after cleanup |
 | MediaPipe needs its WASM files; without a base path it fetches from the host root | Self-host: copy `node_modules/@mediapipe/tasks-vision/wasm` into `apps/web/public/mediapipe/` and call `FilesetResolver.forVisionTasks("/mediapipe")`. Model `.task` files are downloaded separately and also placed in `public/`. Source: https://developers.google.com/edge/api/mediapipe/js/tasks-vision.filesetresolver. Not yet verified in this app (Person 2 to test) |
 | Windows with the Volta shim: a multi-line `node -e` runs only its first line | Put the code in a `.mjs` or `.cjs` file |
-| Vercel Hobby preview URLs are behind login | Demo from the production alias (`research/03-tech-stack.md`, section 1) |
 | `next dev` rewrites `apps/web/AGENTS.md` | Commit it with your work or leave it |
 | `npm install` prints an `unrs-resolver` install-script notice and `npm audit` warnings | Notice only. Do not run `npm audit fix --force` (it can change pinned major versions) |

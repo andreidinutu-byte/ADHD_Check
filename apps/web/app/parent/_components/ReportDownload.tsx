@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getReportPurchase } from "../../../lib/data/parent";
-import { createLazyClient } from "../../../lib/supabase/client";
+import { createClient } from "../../../lib/pocketbase/client";
 import { S } from "../strings";
 import { reportView, viewAfterCheckoutConflict, type ReportView } from "./report-view";
 import { ErrorNote, buttonPrimary, buttonQuiet, postJson } from "./shell";
@@ -16,7 +16,7 @@ const CONFIRM_POLLS = 10;
 const CONFIRM_EVERY_MS = 2000;
 
 export function ReportDownload({ sessionId, band }: { sessionId: string; band: string }) {
-  const client = useMemo(() => createLazyClient(), []);
+  const client = useMemo(() => createClient(), []);
   const [view, setView] = useState<ReportView | "checking">("checking");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);

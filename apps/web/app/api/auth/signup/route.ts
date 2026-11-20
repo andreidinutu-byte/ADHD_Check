@@ -1,8 +1,7 @@
 // Parent sign-up (FR-30). Logic and tests in ../handlers.ts.
-import { createClient } from "@/lib/supabase/server";
+import { createPbAuth } from "@/lib/pocketbase/auth";
 import { handleSignUp } from "../handlers";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  return handleSignUp(request, { auth: supabase.auth });
+  return handleSignUp(request, { auth: await createPbAuth() });
 }

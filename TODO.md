@@ -40,6 +40,6 @@ Research in `research/`. Every figure in a pitch must come from those files with
 ## Build (48 h plan in `research/03-tech-stack.md`)
 - [ ] Game (Phaser 4, go/no-go style mechanics)
 - [ ] Scoring module (transparent rules, illustrative thresholds)
-- [ ] Backend (Supabase, Frankfurt region)
+- [x] Backend: PocketBase on the team server (moved from Supabase on 2026-11-20, docs/HOSTING.md)
 - [ ] Parent dashboard and Stripe test one-off report purchase
 - [ ] Pitch deck and demo script

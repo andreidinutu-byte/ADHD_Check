@@ -1,8 +1,8 @@
 // Start a Stripe Checkout one-off payment for one report (FR-45, D-05b). Logic and tests in ../handlers.ts.
 import { getLatestClosedCheckoutId, getReportPurchase, getSessionResult, listPendingCheckoutIds } from "@/lib/data/parent";
 import { createStripeClient } from "@/lib/stripe";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminPb } from "@/lib/pocketbase/admin";
+import { createServerPb, verifyParent } from "@/lib/pocketbase/server";
 import { startPurchase } from "../billing";
 import { handleCheckout } from "../handlers";
 
@@ -10,24 +10,24 @@ export async function POST(request: Request) {
   let stripe, admin;
   try {
     stripe = createStripeClient();
-    admin = createAdminClient();
+    admin = await createAdminPb();
   } catch {
     console.error("[stripe] checkout failed", { error: "billing_not_configured" });
     return Response.json({ error: "billing_not_configured" }, { status: 503 });
   }
-  const supabase = await createClient();
+  const pb = await createServerPb();
   return handleCheckout(request, {
-    getParentId: async () => (await supabase.auth.getClaims()).data?.claims.sub ?? null,
+    getParentId: async () => (await verifyParent(pb))?.id ?? null,
     priceId: process.env.STRIPE_PRICE_ID,
     siteUrl: process.env.SITE_URL,
-    // The parent's own client: RLS returns nothing for another parent's session or purchase.
+    // The parent's own client: API rules return nothing for another parent's session or purchase.
     getOwnSession: async (sessionId) => {
-      const result = await getSessionResult(supabase, sessionId);
+      const result = await getSessionResult(pb, sessionId);
       return result ? { childId: result.child_id, band: result.score?.band ?? null } : null;
     },
-    isPaid: async (sessionId) => (await getReportPurchase(supabase, sessionId))?.status === "paid",
-    pendingCheckouts: (sessionId) => listPendingCheckoutIds(supabase, sessionId),
-    latestClosedCheckout: (sessionId) => getLatestClosedCheckoutId(supabase, sessionId),
+    isPaid: async (sessionId) => (await getReportPurchase(pb, sessionId))?.status === "paid",
+    pendingCheckouts: (sessionId) => listPendingCheckoutIds(pb, sessionId),
+    latestClosedCheckout: (sessionId) => getLatestClosedCheckoutId(pb, sessionId),
     retrieveCheckout: async (checkoutId) => {
       try {
         const c = await stripe.checkout.sessions.retrieve(checkoutId);

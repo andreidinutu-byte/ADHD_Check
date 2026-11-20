@@ -1,18 +1,23 @@
 // Parent deletes a child profile and all its data (FR-41). Logic and tests in ../handlers.ts.
+import { ClientResponseError } from "pocketbase";
 import type { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServerPb, getParentId } from "@/lib/pocketbase/server";
 import { handleDeleteChild } from "../handlers";
 
 export async function DELETE(_request: NextRequest, ctx: RouteContext<"/api/children/[id]">) {
   const { id } = await ctx.params;
-  const supabase = await createClient();
+  const pb = await createServerPb();
   return handleDeleteChild(id, {
-    getParentId: async () => (await supabase.auth.getClaims()).data?.claims.sub ?? null,
+    getParentId,
     deleteChild: async (childId) => {
-      // RLS (children_delete_own) limits this to the parent's own child; select returns what was deleted.
-      const { data, error } = await supabase.from("children").delete().eq("id", childId).select("id");
-      if (error) throw new Error(`delete child failed: ${error.message}`);
-      return data.length > 0;
+      // The delete rule on children limits this to the parent's own child; 404 means not found or not theirs.
+      try {
+        await pb.collection("children").delete(childId);
+        return true;
+      } catch (e) {
+        if (e instanceof ClientResponseError && e.status === 404) return false;
+        throw new Error(`delete child failed: ${e instanceof Error ? e.message : "unknown"}`);
+      }
     },
   });
 }

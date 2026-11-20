@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 // Hatem, 2026-10-20: the Missions section is not shown on the parent's child page. The component, the data layer
 // (lib/data/parent.ts, missions.ts), the table and the API stay. ChildView is a client component that needs a
-// signed-in Supabase session, so this test reads its source for the section rather than rendering it.
+// signed-in parent session, so this test reads its source for the section rather than rendering it.
 const source = readFileSync(join(__dirname, "ChildView.tsx"), "utf8");
 const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 

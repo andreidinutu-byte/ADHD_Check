@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Missing Supabase settings must answer 503 (as /api/sessions does), not an unhandled 500.
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: () => {
-    throw new Error("Supabase: settings are not set");
+// Missing PocketBase admin settings must answer 503 (as /api/sessions does), not an unhandled 500.
+vi.mock("@/lib/pocketbase/admin", () => ({
+  createAdminPb: async () => {
+    throw new Error("PocketBase admin settings are not set");
   },
 }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getClaims: async () => ({ data: null }) } }) }));
+vi.mock("@/lib/pocketbase/server", () => ({ getParentId: async () => null }));
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("play-link routes without Supabase settings", () => {
+describe("play-link routes without PocketBase admin settings", () => {
   it("POST /api/play-links answers 503 storage_unavailable", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const { POST } = await import("./route");

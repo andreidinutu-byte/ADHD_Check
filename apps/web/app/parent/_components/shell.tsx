@@ -3,25 +3,31 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type PocketBase from "pocketbase";
 // Relative import: the tests render a card that uses this file, and Vitest has no "@/" alias.
-import { createLazyClient } from "../../../lib/supabase/client";
+import { createClient } from "../../../lib/pocketbase/client";
 import { loginPathFor } from "../../../lib/safe-next";
 import { S } from "../strings";
 
-// Parent pages run in the browser with the parent's own Supabase client (RLS returns only their rows).
+// Parent pages run in the browser with the parent's own PocketBase client (API rules return only their rows).
 // No session: to /login, carrying this page, so the login returns here (a link in the report email lands on the
 // right child and report after login).
-export function useParent(): { client: SupabaseClient; ready: boolean } {
-  const client = useMemo(() => createLazyClient(), []);
+export function useParent(): { client: PocketBase; ready: boolean } {
+  const client = useMemo(() => createClient(), []);
   const router = useRouter();
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let live = true;
-    void client.auth.getUser().then(({ data }) => {
+    const toLogin = () => router.replace(loginPathFor(window.location.pathname + window.location.search));
+    // authRefresh asks PocketBase whether the stored login is still good (and renews it, so an active parent
+    // stays logged in); an expired or revoked login is cleared and the parent goes to /login.
+    const check = client.authStore.isValid
+      ? client.collection("users").authRefresh().then(() => true, () => (client.authStore.clear(), false))
+      : Promise.resolve(false);
+    void check.then((ok) => {
       if (!live) return;
-      if (data.user) setReady(true);
-      else router.replace(loginPathFor(window.location.pathname + window.location.search));
+      if (ok) setReady(true);
+      else toLogin();
     });
     return () => {
       live = false;
@@ -36,6 +42,7 @@ export async function postJson(url: string, body: unknown = {}) {
 
 export function Shell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const client = useMemo(() => createClient(), []);
   return (
     <div className="min-h-dvh bg-cream text-ink">
       <header className="bg-night text-moon">
@@ -48,6 +55,7 @@ export function Shell({ children }: { children: ReactNode }) {
             type="button"
             onClick={async () => {
               await postJson("/api/auth/logout");
+              client.authStore.clear();
               router.replace("/login");
             }}
             className="rounded-lg px-3 py-2 text-sm font-semibold text-moon-muted hover:text-moon focus-visible:outline-2 focus-visible:outline-glow"

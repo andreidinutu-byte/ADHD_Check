@@ -4,15 +4,15 @@ import { toSessionResult, validateNewChild } from "./parent";
 
 const SESSION_ID = validScoreResult.session_id;
 
-// A sessions row as PostgREST returns it with its embedded scores row (object or one-element array).
+// A sessions record as PocketBase returns it, with the score as its json field (also accepted: a one-element array).
 function row(score: unknown) {
   return {
     id: SESSION_ID,
-    child_id: "00000000-0000-4000-8000-0000000000ca",
-    started_at: "2026-10-01T16:30:00+00:00",
+    child: "00000000-0000-4000-8000-0000000000ca",
+    started_at: "2026-10-01 16:30:00.000Z",
     duration_ms: 300000,
     device: { pointer_type: "touch", user_agent: "synthetic-demo-agent", screen_w: 1024 },
-    scores: score,
+    score,
   };
 }
 
@@ -25,7 +25,8 @@ describe("toSessionResult (FR-33, FR-38)", () => {
     const result = toSessionResult(row(scoreColumns));
 
     expect(result.session_id).toBe(SESSION_ID);
-    expect(result.started_at).toBe("2026-10-01T16:30:00+00:00");
+    expect(result.started_at).toBe("2026-10-01T16:30:00.000Z");
+    expect(result.child_id).toBe("00000000-0000-4000-8000-0000000000ca");
     expect(result.device).toEqual({ pointer_type: "touch", user_agent: "synthetic-demo-agent" });
     expect(result.score).toEqual(validScoreResult);
   });
