@@ -40,3 +40,4 @@ export * from "./minigames/wake-fireflies";
 export * from "./minigames/lantern-watch";
 
 export { START_ENABLE_MS } from "./pointer";
+export * from "./minigames/storm-watch";
