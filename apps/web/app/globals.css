@@ -229,7 +229,7 @@ h3 {
 
   .twilight-window {
     background-color: var(--twilight);
-    background-image: radial-gradient(circle at 50% 0%, #233063 0%, transparent 70%);
+    background-image: linear-gradient(180deg, var(--twilight-2) 0%, var(--twilight) 100%);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--twilight-text);
   }

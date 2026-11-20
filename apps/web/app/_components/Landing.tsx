@@ -52,24 +52,27 @@ export function Landing() {
   useReveal(lang);
 
   return (
-    <div className="bg-dusk-deep text-moon">
+    <div className="landing-theme min-h-screen">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-lantern focus:px-4 focus:py-2 focus:text-on-lantern"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-brand-teal focus:px-4 focus:py-2 focus:text-white focus:shadow-md font-semibold"
       >
         {t.meta.skip}
       </a>
       <Header t={t} lang={lang} setLang={writeLang} />
       <main id="main">
         <Hero t={t} />
-        <Problem t={t} />
-        <How t={t} />
-        <Game t={t} />
-        <Result t={t} />
-        <Offer t={t} />
-        <Privacy t={t} />
-        <Faq t={t} />
-        <Final t={t} lang={lang} />
+        {/* Temporary wrapper for Problem through Final to preserve dark contrast */}
+        <div className="bg-dusk-deep text-moon">
+          <Problem t={t} />
+          <How t={t} />
+          <Game t={t} />
+          <Result t={t} />
+          <Offer t={t} />
+          <Privacy t={t} />
+          <Faq t={t} />
+          <Final t={t} lang={lang} />
+        </div>
       </main>
       <Footer t={t} />
       <StickyCta t={t} />
@@ -116,22 +119,41 @@ function H2({ children, className = "" }: { children: ReactNode; className?: str
   return <h2 className={`font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl ${className}`}>{children}</h2>;
 }
 
-function CtaButton({ children, className = "" }: { children: ReactNode; className?: string }) {
+function CtaButton({
+  children,
+  className = "",
+  variant = "editorial",
+}: {
+  children: ReactNode;
+  className?: string;
+  variant?: "editorial" | "lantern";
+}) {
+  if (variant === "lantern") {
+    return (
+      <a
+        href="#start"
+        className={`btn-lantern inline-flex min-h-13 cursor-pointer items-center justify-center gap-2 rounded-2xl px-7 py-3 font-display text-lg font-semibold ${className}`}
+      >
+        {children}
+        <Arrow className="size-5" />
+      </a>
+    );
+  }
   return (
     <a
       href="#start"
-      className={`btn-lantern inline-flex min-h-13 cursor-pointer items-center justify-center gap-2 rounded-2xl px-7 py-3 font-display text-lg font-semibold ${className}`}
+      className={`btn-editorial-primary inline-flex min-h-13 cursor-pointer items-center justify-center gap-2.5 rounded-xl px-7 py-3 text-base font-semibold shadow-xs ${className}`}
     >
       {children}
-      <Arrow className="size-5" />
+      <Arrow className="size-4" />
     </a>
   );
 }
 
 function PilotNote({ children }: { children: ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-2 rounded-xl border border-lavender/20 px-3 py-1.5 text-sm font-semibold text-lavender">
-      <span className="size-2 rounded-full bg-river-soft" aria-hidden="true" />
+    <p className="inline-flex items-center gap-2 rounded-full border border-line bg-paper-2 px-3.5 py-1.5 text-xs font-medium text-ink-secondary">
+      <span className="size-1.5 rounded-full bg-brand-teal" aria-hidden="true" />
       {children}
     </p>
   );
@@ -139,15 +161,36 @@ function PilotNote({ children }: { children: ReactNode }) {
 
 /* ---------- header ---------- */
 
-function Logo() {
+function Logo({ dark = false }: { dark?: boolean }) {
   return (
-    <a href="#main" className="flex items-center gap-2" aria-label="ADHDCheck">
-      <span className="relative grid size-8 place-items-center">
-        <span className="absolute inset-0 rounded-full bg-lantern/30 blur-md" />
-        <span className="relative size-3 rounded-full bg-lantern shadow-[0_0_14px_4px_rgb(255_196_87/0.7)]" />
+    <a href="#main" className="group flex items-center gap-2.5" aria-label="ADHDCheck">
+      <span
+        className={`relative flex size-7 items-center justify-center rounded-lg border transition-colors ${
+          dark ? "border-white/15 bg-white/10" : "border-line bg-paper-2"
+        }`}
+      >
+        <svg
+          viewBox="0 0 20 20"
+          fill="none"
+          className={`size-4 ${dark ? "text-twilight-text" : "text-brand-teal"}`}
+          aria-hidden="true"
+        >
+          <path d="M10 2C9.4 2 9 2.4 9 3V4H11V3C11 2.4 10.6 2 10 2Z" fill="currentColor" />
+          <path
+            d="M6 7C6 5.3 7.8 4 10 4C12.2 4 14 5.3 14 7V13C14 15 12 16.5 10 16.5C8 16.5 6 15 6 13V7Z"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <circle cx="10" cy="10" r="2.2" className="fill-lantern-warm" />
+        </svg>
       </span>
-      <span className="font-display text-xl font-bold tracking-tight text-moon">
-        ADHD<span className="text-lantern">Check</span>
+      <span
+        className={`font-editorial text-xl font-semibold tracking-tight transition-colors ${
+          dark ? "text-twilight-text" : "text-ink-primary"
+        }`}
+      >
+        ADHD<span className={dark ? "text-lantern-warm" : "text-brand-teal"}>Check</span>
       </span>
     </a>
   );
@@ -155,15 +198,15 @@ function Logo() {
 
 function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) => void; label: string }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-xl border border-white/15 bg-white/5 p-1">
+    <div role="group" aria-label={label} className="flex rounded-xl border border-line bg-paper-2 p-1">
       {(["ro", "en"] as const).map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => setLang(l)}
           aria-pressed={lang === l}
-          className={`min-h-9 min-w-10 cursor-pointer rounded-lg px-3 text-sm font-bold uppercase transition-colors ${
-            lang === l ? "bg-moon text-dusk" : "text-lavender hover:text-moon"
+          className={`min-h-10 min-w-11 cursor-pointer rounded-lg px-3 text-xs font-semibold uppercase tracking-wider transition-all ${
+            lang === l ? "bg-surface text-ink-primary shadow-xs" : "text-ink-secondary hover:text-ink-primary"
           }`}
         >
           {l}
@@ -175,26 +218,26 @@ function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) =
 
 function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-dusk-deep/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-line bg-paper/90 backdrop-blur-md">
       <Container className="flex h-16 items-center justify-between gap-3">
         <Logo />
-        <nav aria-label="Main" className="hidden items-center gap-7 text-sm font-semibold text-lavender lg:flex">
-          <a className="hover:text-moon" href="#how">{t.nav.how}</a>
-          <a className="hover:text-moon" href="#offer">{t.nav.offer}</a>
-          <a className="hover:text-moon" href="#privacy">{t.nav.privacy}</a>
-          <a className="hover:text-moon" href="#faq">{t.nav.faq}</a>
+        <nav aria-label="Main" className="hidden items-center gap-7 text-sm font-medium text-ink-secondary lg:flex">
+          <a className="transition-colors hover:text-ink-primary" href="#how">{t.nav.how}</a>
+          <a className="transition-colors hover:text-ink-primary" href="#offer">{t.nav.offer}</a>
+          <a className="transition-colors hover:text-ink-primary" href="#privacy">{t.nav.privacy}</a>
+          <a className="transition-colors hover:text-ink-primary" href="#faq">{t.nav.faq}</a>
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <LangToggle lang={lang} setLang={setLang} label={t.nav.langLabel} />
           <a
             href="/login"
-            className="inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-2 text-sm font-semibold text-lavender hover:text-moon sm:px-3"
+            className="inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-2 text-sm font-medium text-ink-secondary transition-colors hover:text-ink-primary sm:px-3"
           >
             {t.nav.login}
           </a>
           <a
             href="#start"
-            className="btn-lantern hidden min-h-10 items-center rounded-xl px-5 font-display text-sm font-semibold sm:inline-flex"
+            className="btn-editorial-primary hidden min-h-10 items-center rounded-xl px-5 text-sm sm:inline-flex"
           >
             {t.nav.cta}
           </a>
@@ -208,30 +251,30 @@ function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) 
 
 function Hero({ t }: { t: Dict }) {
   return (
-    <section id="hero" className="relative overflow-hidden bg-dusk">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,#3a2d7a_0%,transparent_65%)]" aria-hidden="true" />
-      <Fireflies />
-      <Container className="relative pb-16 pt-8 text-center sm:pt-14 md:pb-24">
-        <p className="text-sm font-semibold text-lavender sm:text-base">{t.hero.eyebrow}</p>
-        <h1 className="mx-auto mt-3 max-w-4xl font-display text-[2.35rem] font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
+    <section id="hero" className="relative bg-paper pb-16 pt-8 sm:pt-14 md:pb-24">
+      <Container className="relative text-center">
+        <p className="text-sm font-semibold tracking-wide text-brand-teal sm:text-base">{t.hero.eyebrow}</p>
+        <h1 className="mx-auto mt-4 max-w-4xl font-editorial text-4xl font-semibold leading-[1.08] tracking-tight text-ink-primary sm:text-5xl md:text-6xl lg:text-7xl text-balance">
           {t.hero.title}
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-lavender md:text-xl">{t.hero.sub}</p>
-        <div className="mt-7 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-ink-secondary md:text-xl text-pretty">
+          {t.hero.sub}
+        </p>
+        <div className="mt-8 flex flex-col items-stretch justify-center gap-3.5 sm:flex-row sm:items-center">
           <CtaButton>{t.hero.cta}</CtaButton>
           <a
             href="#how"
-            className="inline-flex min-h-13 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-white/20 px-6 font-display font-semibold text-moon transition-colors hover:border-white/50"
+            className="btn-editorial-secondary inline-flex min-h-13 cursor-pointer items-center justify-center gap-2 rounded-xl px-6 text-base font-semibold shadow-xs"
           >
-            <Play className="size-4" />
+            <Play className="size-4 text-brand-teal" />
             {t.hero.secondary}
           </a>
         </div>
-        <ul className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold text-lavender">
+        <ul className="mt-7 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-medium text-ink-secondary">
           {t.hero.trust.map((x) => (
             <li key={x} className="flex items-center gap-2">
-              <Check className="size-4 text-river-soft" />
-              {x}
+              <Check className="size-4 text-brand-teal" />
+              <span>{x}</span>
             </li>
           ))}
         </ul>
@@ -239,29 +282,35 @@ function Hero({ t }: { t: Dict }) {
           <PilotNote>{t.hero.pilot}</PilotNote>
         </div>
 
-        <div className="relative mx-auto mt-12 max-w-5xl md:mt-16">
-          <div className="absolute -inset-x-10 -inset-y-6 rounded-full bg-river/20 blur-3xl" aria-hidden="true" />
-          <div className="relative hidden overflow-hidden rounded-[2rem] border-[10px] border-[#0d0a24] shadow-2xl md:block md:w-[78%]">
-            <Image
-              src="/landing/treasure-choice-play.jpg"
-              alt=""
-              width={2400}
-              height={1600}
-              sizes="(min-width: 768px) 60vw, 0px"
-              className="block h-auto w-full"
-              loading="eager"
-            />
-          </div>
-          <div className="relative mx-auto w-[62%] max-w-[260px] overflow-hidden rounded-[2.4rem] border-[8px] border-[#0d0a24] shadow-2xl md:absolute md:-bottom-8 md:right-0 md:mx-0 md:w-[30%] md:max-w-none">
-            <Image
-              src="/landing/bridge-wait-portrait.jpg"
-              alt={t.hero.imgAlt}
-              width={860}
-              height={1640}
-              sizes="(min-width: 768px) 30vw, 62vw"
-              className="block h-auto w-full"
-              preload
-            />
+        <div className="twilight-window relative mx-auto mt-12 max-w-5xl overflow-hidden rounded-[2rem] p-5 shadow-xl sm:p-7 md:mt-16 md:p-9 lg:p-11">
+          <Fireflies count={5} />
+
+          <div className="relative mx-auto flex w-full items-center justify-center">
+            {/* Tablet Landscape - visible from md upwards */}
+            <div className="relative hidden overflow-hidden rounded-[1.75rem] border-[6px] border-twilight-2/80 shadow-2xl md:block md:w-[74%] lg:w-[76%]">
+              <Image
+                src="/landing/treasure-choice-play.jpg"
+                alt=""
+                width={2400}
+                height={1600}
+                sizes="(min-width: 768px) 55vw, 0px"
+                className="block h-auto w-full object-cover"
+                loading="eager"
+              />
+            </div>
+
+            {/* Phone Portrait - centered on mobile, positioned bottom-right on tablet/desktop */}
+            <div className="relative mx-auto w-[68%] max-w-[240px] overflow-hidden rounded-[2.2rem] border-[6px] border-twilight-2/90 shadow-2xl md:absolute md:bottom-2 md:right-2 md:mx-0 md:w-[26%] md:max-w-[240px] lg:bottom-4 lg:right-4 lg:w-[25%]">
+              <Image
+                src="/landing/bridge-wait-portrait.jpg"
+                alt={t.hero.imgAlt}
+                width={860}
+                height={1640}
+                sizes="(min-width: 768px) 25vw, 68vw"
+                className="block h-auto w-full object-cover"
+                preload
+              />
+            </div>
           </div>
         </div>
       </Container>
@@ -627,7 +676,7 @@ function Footer({ t }: { t: Dict }) {
   return (
     <footer className="bg-[#0b0820] pb-28 pt-12 text-sm text-lavender md:pb-12">
       <Container className="space-y-4">
-        <Logo />
+        <Logo dark />
         <p className="font-semibold text-moon">{t.footer.pilot}</p>
         <p className="max-w-3xl leading-relaxed">{t.footer.disclaimer}</p>
         <p>{t.footer.event}</p>
