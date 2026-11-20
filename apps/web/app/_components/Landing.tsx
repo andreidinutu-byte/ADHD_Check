@@ -449,7 +449,7 @@ function How({ t }: { t: Dict }) {
 function Game({ t }: { t: Dict }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const activeGame = t.game.games[activeIdx] ?? t.game.games[0];
-  const isPortrait = activeGame.img?.includes("portrait") || activeGame.img?.includes("bridge-wait");
+  const isPortrait = Boolean(activeGame.img?.includes("portrait"));
 
   return (
     <section id="game" className="relative overflow-hidden bg-story-night-alt py-20 text-story-ink md:py-28">
@@ -473,10 +473,10 @@ function Game({ t }: { t: Dict }) {
                   src={activeGame.img}
                   alt={activeGame.what}
                   width={isPortrait ? 860 : 2400}
-                  height={isPortrait ? 1640 : 1600}
+                  height={isPortrait ? 1640 : 1500}
                   sizes="(min-width: 1024px) 50vw, 90vw"
                   className={`block size-full object-cover ${
-                    isPortrait ? "object-[50%_54%]" : "object-center"
+                    isPortrait ? "object-[50%_38%]" : "object-center"
                   }`}
                 />
               ) : (
