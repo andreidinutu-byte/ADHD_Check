@@ -65,7 +65,7 @@ const FIREFLY_SCALE = 1.55;
 /** Luma sits on a big lily pad in the near river, front left, watching the lanterns. Portrait: closer to the
  * middle and nearer the camera, so Luma stays whole on a narrow screen and fills the lower half. */
 const LUMA_LANDSCAPE = new Vector3(-1.95, WATER_Y + 0.05, 2.5);
-const LUMA_PORTRAIT = new Vector3(-1.05, WATER_Y + 0.05, 3.6);
+const LUMA_PORTRAIT = new Vector3(-0.92, WATER_Y + 0.05, 3.6);
 const MOTH_SCALE = 0.74;
 const VIEW_DIR = new Vector3(0, 0.34, 1).normalize();
 
@@ -618,8 +618,11 @@ export function createLanternWatchScene(parent: HTMLElement, opts: SceneOptions)
       const s = screen[handTarget.lantern] as { x: number; y: number; r: number };
       ui.hand(handTarget.mode, s.x, s.y + (handTarget.mode === "hold" ? s.r * 0.9 : 0));
     } else ui.hand("off");
-    head.copy(lumaHead()).project(camera);
-    ui.place(((head.x + 1) / 2) * viewW, ((1 - head.y) / 2) * viewH - 10);
+    // The bubble never lies over a lantern: beside Luma on a tall screen, on the water under the Start button
+    // on a wide one. Its tail points left, at Luma.
+    head.set(lumaPos.x + 0.72, lumaPos.y + 0.78, lumaPos.z).project(camera);
+    if (viewW < viewH) ui.place(((head.x + 1) / 2) * viewW + 6, ((1 - head.y) / 2) * viewH, "side");
+    else ui.place(Math.max(((head.x + 1) / 2) * viewW + 24, viewW * 0.3), 0, "low");
 
     renderer.render(scene, camera);
   };
