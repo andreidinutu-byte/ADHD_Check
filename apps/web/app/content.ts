@@ -85,8 +85,8 @@ const ro = {
     sub: "Mini-jocuri scurte, în aceeași lume: râul de noapte, licuricii și Luma.",
     games: [
       { name: "Comoara", what: "O piatră prețioasă acum sau două puțin mai târziu?", img: "/landing/treasure-choice-play.jpg" },
-      { name: "Podul", what: "Aștepți semnalul, apoi treci râul.", img: "/landing/bridge-wait-stage.jpg" },
       { name: "Cărarea stelelor", what: "Stelele se aprind pe rând. Copilul reface același drum.", img: "/landing/star-path-play.jpg" },
+      { name: "Podul", what: "Aștepți semnalul, apoi treci râul.", img: "/landing/bridge-wait-stage.jpg" },
       { name: "Planificatorul de drum", what: "Ajută-l pe Luma să adune semințele care strălucesc, pătrat cu pătrat.", img: "/landing/route-planner-play.jpg" },
     ],
     core: "Jocul principal de atenție, cu licuricii, este încă în dezvoltare.",
@@ -274,8 +274,8 @@ const en: Dict = {
     sub: "Short mini-games in one world: the night river, the fireflies and Luma.",
     games: [
       { name: "Treasure Choice", what: "One gem now, or two a little later?", img: "/landing/treasure-choice-play.jpg" },
-      { name: "Bridge Wait", what: "Wait for the signal, then cross the river.", img: "/landing/bridge-wait-stage.jpg" },
       { name: "Star Path", what: "Stars light up one by one. Your child traces the same path.", img: "/landing/star-path-play.jpg" },
+      { name: "Bridge Wait", what: "Wait for the signal, then cross the river.", img: "/landing/bridge-wait-stage.jpg" },
       { name: "Route Planner", what: "Help Luma pick up the glowing seeds, one square at a time.", img: "/landing/route-planner-play.jpg" },
     ],
     core: "The main attention game, with the fireflies, is still in development.",
