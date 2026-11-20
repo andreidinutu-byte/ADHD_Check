@@ -30,7 +30,7 @@ const ro = {
     secondary: "Vezi cum funcționează",
     trust: ["Rezultatul și pasul următor, gratuit", "Nimic de instalat", "Date găzduite în UE"],
     pilot: "Pilot în dezvoltare. Nu are încă marcaj CE.",
-    imgAlt: "Jocul Podul: Luma, un licurici turcoaz, lângă un pod de lemn peste un râu, noaptea, sub lună.",
+    imgAlt: "Jocul Storm Watch: Luma, un licurici turcoaz, lângă un borcan cu licurici, sub un copac mare cu o bufniță adormită, noaptea.",
   },
   problem: {
     kicker: "Sună cunoscut?",
@@ -219,7 +219,7 @@ const en: Dict = {
     secondary: "See how it works",
     trust: ["Result and next step free", "Nothing to install", "Data hosted in the EU"],
     pilot: "Pilot in development. Not CE marked yet.",
-    imgAlt: "The Bridge Wait game: Luma, a teal firefly, next to a wooden bridge over a river at night, under the moon.",
+    imgAlt: "The Storm Watch game: Luma, a teal firefly, next to a jar of fireflies under a big tree with a sleeping owl, at night.",
   },
   problem: {
     kicker: "Sound familiar?",

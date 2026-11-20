@@ -279,7 +279,7 @@ function Hero({ t }: { t: Dict }) {
             {/* Tablet Landscape - visible from md upwards */}
             <div className="relative hidden overflow-hidden rounded-[1.75rem] border-[6px] border-story-night-alt shadow-2xl md:block md:w-[78%] lg:w-[80%]">
               <Image
-                src="/landing/treasure-choice-play.jpg"
+                src="/landing/storm-watch-play.jpg"
                 alt=""
                 width={2400}
                 height={1600}
@@ -292,7 +292,7 @@ function Hero({ t }: { t: Dict }) {
             {/* Phone Portrait - centered on mobile, positioned bottom-right on tablet/desktop */}
             <div className="relative mx-auto w-[68%] max-w-[240px] overflow-hidden rounded-[2.2rem] border-[6px] border-story-night-alt shadow-2xl md:absolute md:bottom-2 md:right-0 lg:bottom-4 md:w-[26%] lg:w-[25%]">
               <Image
-                src="/landing/bridge-wait-portrait.jpg"
+                src="/landing/storm-watch-portrait.jpg"
                 alt={t.hero.imgAlt}
                 width={860}
                 height={1640}
