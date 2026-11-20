@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { content, type Dict, type Lang } from "../content";
 import { Fireflies } from "./Fireflies";
 import { Arrow, Check, Compass, Play, Plus, Shield } from "./icons";
@@ -158,20 +158,21 @@ function PilotNote({ children }: { children: ReactNode }) {
 /* ---------- header ---------- */
 
 function Logo({ dark = false }: { dark?: boolean }) {
+  const gradientId = useId();
   return (
     <a href="#main" className="group flex items-center gap-2.5" aria-label="ADHDCheck">
-      <span className="relative flex size-8 items-center justify-center rounded-xl border border-story-line bg-story-surface shadow-xs transition-colors group-hover:border-story-lantern/40">
-        <svg viewBox="0 0 20 20" fill="none" className="size-4 text-story-ink" aria-hidden="true">
-          <path d="M10 2C9.4 2 9 2.4 9 3V4H11V3C11 2.4 10.6 2 10 2Z" fill="currentColor" />
-          <path
-            d="M6 7C6 5.3 7.8 4 10 4C12.2 4 14 5.3 14 7V13C14 15 12 16.5 10 16.5C8 16.5 6 15 6 13V7Z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <circle cx="10" cy="10" r="2.2" className="fill-story-lantern" />
-        </svg>
-      </span>
+      <svg viewBox="0 0 32 32" className="size-7 shrink-0 transition-transform duration-300 group-hover:scale-110" aria-hidden="true">
+        <defs>
+          <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#FFFDF7" stopOpacity="1" />
+            <stop offset="35%" stopColor="#F5B841" stopOpacity="0.9" />
+            <stop offset="70%" stopColor="#F5B841" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#F5B841" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <circle cx="16" cy="16" r="14" fill={`url(#${gradientId})`} />
+        <circle cx="16" cy="16" r="4" fill="#FFFDF7" />
+      </svg>
       <span className="font-storybook text-xl font-bold tracking-tight text-story-ink">
         ADHD<span className="text-story-lantern">Check</span>
       </span>
@@ -237,7 +238,7 @@ function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) 
 function Hero({ t }: { t: Dict }) {
   return (
     <section id="hero" className="relative overflow-hidden bg-story-night pb-16 pt-8 sm:pt-14 md:pb-24">
-      <Fireflies count={6} />
+      <Fireflies prominent count={10} />
       <Container className="relative z-10 text-center">
         <p className="text-sm font-semibold tracking-wide text-story-luma sm:text-base">{t.hero.eyebrow}</p>
 
@@ -468,29 +469,16 @@ function Game({ t }: { t: Dict }) {
           <div className="reveal flex flex-col justify-between rounded-[2rem] border border-story-line bg-story-surface p-5 shadow-2xl sm:p-6">
             <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-story-line/60 bg-story-night">
               {activeGame.img ? (
-                isPortrait ? (
-                  <div className="relative flex size-full items-center justify-center p-3 sm:p-4">
-                    <div className="relative h-full aspect-[9/16] max-h-[360px] overflow-hidden rounded-[1.75rem] border-4 border-story-line/80 bg-story-night shadow-xl">
-                      <Image
-                        src={activeGame.img}
-                        alt={activeGame.what}
-                        width={860}
-                        height={1640}
-                        sizes="(min-width: 1024px) 25vw, 60vw"
-                        className="block size-full object-cover"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <Image
-                    src={activeGame.img}
-                    alt={activeGame.what}
-                    width={2400}
-                    height={1600}
-                    sizes="(min-width: 1024px) 50vw, 90vw"
-                    className="block size-full object-cover"
-                  />
-                )
+                <Image
+                  src={activeGame.img}
+                  alt={activeGame.what}
+                  width={isPortrait ? 860 : 2400}
+                  height={isPortrait ? 1640 : 1600}
+                  sizes="(min-width: 1024px) 50vw, 90vw"
+                  className={`block size-full object-cover ${
+                    isPortrait ? "object-[50%_54%]" : "object-center"
+                  }`}
+                />
               ) : (
                 <div className="grid size-full place-items-center bg-story-night text-story-luma" aria-hidden="true">
                   <Compass className="size-16" />
