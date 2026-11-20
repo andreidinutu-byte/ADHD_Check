@@ -30,8 +30,8 @@ export interface Cricket {
 export function buildCricket(grad: DataTexture, outlineMat: MeshBasicMaterial): Cricket {
   const toon = (c: number) => new MeshToonMaterial({ color: new Color(c), gradientMap: grad });
   const sphere = new SphereGeometry(1, 20, 14);
-  const shell = toon(0x4a3c8c);
-  const shellDark = toon(0x35296b);
+  const shell = toon(0x40327e);
+  const shellDark = toon(0x2c2160);
   const belly = toon(0xb9a8ea);
   const root = new Group();
   const g = new Group(); // faces +x, turned a little toward the camera

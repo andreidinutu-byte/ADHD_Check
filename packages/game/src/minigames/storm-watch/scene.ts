@@ -242,22 +242,21 @@ export function createStormWatchScene(parent: HTMLElement, opts: SceneOptions = 
     parent.dataset.stim = "";
   };
 
-  // Birds never pass in front of a perch or the owl: two fly behind the tree (the leaves and the trunk hide
-  // them for a moment), one skims the grass below the lowest perch. They distract; they must not cover a target.
+  // Birds fly behind the tree, never in front of it: the leaves and the trunk hide them for a moment, and
+  // they can never cover a perch, the owl, Luma or the jar. They distract; they must not block a target.
   const launchBirds = (ts: number) => {
     const dir = rnd() < 0.5 ? 1 : -1;
-    const base = 1.35 + rnd() * 0.8;
+    const base = 1.1 + rnd() * 0.6;
     let n = 0;
     for (const b of birds) {
       if (b.active || n >= 3) continue;
-      const low = n === 2;
       b.active = true;
       b.dir = dir;
-      b.speed = (low ? 5.2 : 6.4) + rnd() * 1.2;
-      b.y = low ? 0.5 + rnd() * 0.2 : base + n * 0.55;
-      b.delay = ts + n * 160;
-      b.bird.root.position.set(-dir * (low ? 6.6 : 10.5 + n * 0.7), b.y, low ? 1.9 : -2.6 - n * 0.5);
-      b.bird.root.scale.setScalar(low ? 1.0 : 1.6);
+      b.speed = 6.2 + rnd() * 1.4;
+      b.y = base + n * 0.62;
+      b.delay = ts + n * 170;
+      b.bird.root.position.set(-dir * (10.5 + n * 0.8), b.y, -2.4 - n * 0.45);
+      b.bird.root.scale.setScalar(1.6);
       b.bird.root.rotation.y = dir > 0 ? 0 : Math.PI;
       b.bird.root.visible = true;
       n++;
@@ -500,7 +499,7 @@ export function createStormWatchScene(parent: HTMLElement, opts: SceneOptions = 
     camera.fov = portrait ? 50 : 38;
     const tanH = Math.tan((camera.fov * Math.PI) / 360);
     // Wide enough for all four perches (and Luma in landscape), tall enough for the tree.
-    const halfW = portrait ? 2.85 : 4.35;
+    const halfW = portrait ? 2.68 : 4.35;
     const halfH = portrait ? 3.6 : 2.95;
     const d = Math.max(7.2, halfW / (tanH * aspect), halfH / tanH);
     camera.aspect = aspect;
@@ -836,7 +835,7 @@ export function createStormWatchScene(parent: HTMLElement, opts: SceneOptions = 
     // Practice hand on the thing to tap (never on a cricket); bubble above Luma.
     if (active && active.practice && active.type !== "nogo" && !active.responded) {
       const p = toScreen(active.target);
-      ui.hand(true, p.x, p.y + p.r * 0.25);
+      ui.hand(true, p.x, p.y + p.r * 0.62); // fingertip under the creature, not on its face
     } else ui.hand(false);
     if (viewW >= viewH) {
       // Landscape: the bubble sits on the grass in front of the tree, right of the jar, clear of every perch.
