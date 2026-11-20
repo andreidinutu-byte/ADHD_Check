@@ -11,6 +11,8 @@ It is an orientation tool, not a diagnosis: it never shows an ADHD probability o
 
 **First time? Follow [docs/SETUP.md](docs/SETUP.md) to install and run the app.**
 
+**Live site, deploys (push to `main` goes live) and the team database: [docs/HOSTING.md](docs/HOSTING.md).**
+
 **Building? Read [docs/04-work-split.md](docs/04-work-split.md) first: who does what, and your first 2 hours.**
 
 1. [docs/01-user-needs.md](docs/01-user-needs.md): who the users are and what they need (UN-xx), with sources and traceability.

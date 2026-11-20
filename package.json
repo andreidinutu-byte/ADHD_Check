@@ -18,7 +18,8 @@
     "test:watch": "vitest",
     "lint": "npm run lint --workspace apps/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "check:secrets": "node scripts/check-secrets.mjs"
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "db": "node scripts/db.mjs"
   },
   "devDependencies": {
     "typescript": "^5",
