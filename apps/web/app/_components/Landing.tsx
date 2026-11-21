@@ -209,10 +209,10 @@ function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) 
       <Container className="flex h-16 items-center justify-between gap-3">
         <Logo />
         <nav aria-label="Main" className="hidden items-center gap-7 text-sm font-semibold text-story-muted lg:flex">
-          <a className="transition-colors hover:text-story-ink" href="#how">{t.nav.how}</a>
-          <a className="transition-colors hover:text-story-ink" href="#offer">{t.nav.offer}</a>
-          <a className="transition-colors hover:text-story-ink" href="#privacy">{t.nav.privacy}</a>
-          <a className="transition-colors hover:text-story-ink" href="#faq">{t.nav.faq}</a>
+          <a className="whitespace-nowrap transition-colors hover:text-story-ink" href="#how">{t.nav.how}</a>
+          <a className="whitespace-nowrap transition-colors hover:text-story-ink" href="#offer">{t.nav.offer}</a>
+          <a className="whitespace-nowrap transition-colors hover:text-story-ink" href="#privacy">{t.nav.privacy}</a>
+          <a className="whitespace-nowrap transition-colors hover:text-story-ink" href="#faq">{t.nav.faq}</a>
         </nav>
         <div className="flex items-center gap-2 sm:gap-3">
           <LangToggle lang={lang} setLang={setLang} label={t.nav.langLabel} />

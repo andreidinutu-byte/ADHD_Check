@@ -391,8 +391,8 @@ const en: Dict = {
 const fr: Dict = {
   meta: { skip: "Aller au contenu" },
   nav: {
-    how: "Comment ça marche",
-    offer: "Ce que vous obtenez",
+    how: "Fonctionnement",
+    offer: "L’offre",
     privacy: "Confidentialité",
     faq: "FAQ",
     cta: "Obtenir l’accès",
