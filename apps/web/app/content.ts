@@ -9,7 +9,7 @@
 // "10–\u206015": a word joiner keeps the range on one line.
 // Retention period is still open (docs/02 D-09), so the FAQ says so instead of giving a number.
 
-export type Lang = "ro" | "en";
+export type Lang = "ro" | "en" | "fr";
 
 const ro = {
   meta: { skip: "Sari la conținut" },
@@ -387,4 +387,192 @@ const en: Dict = {
   sticky: "Get free early access",
 };
 
-export const content: Record<Lang, Dict> = { ro, en };
+// French: a translation of the English copy (2026-11-21), not yet reviewed by a native speaker.
+const fr: Dict = {
+  meta: { skip: "Aller au contenu" },
+  nav: {
+    how: "Comment ça marche",
+    offer: "Ce que vous obtenez",
+    privacy: "Confidentialité",
+    faq: "FAQ",
+    cta: "Obtenir l’accès",
+    login: "Connexion",
+    langLabel: "Langue",
+  },
+  hero: {
+    eyebrow: "Pour les parents d’enfants de 6 à 12 ans",
+    title: "Donnez-lui le téléphone. Obtenez une prochaine étape claire.",
+    sub: "Votre enfant joue une aventure calme de 10 à\u00a015 minutes avec Luma. À la fin, vous savez s’il vaut la peine d’en parler à un professionnel au sujet de son attention et de sa concentration, et à qui vous adresser.",
+    cta: "Accès anticipé gratuit",
+    secondary: "Voir comment ça marche",
+    trust: ["Résultat et prochaine étape gratuits", "Rien à installer", "Données hébergées dans l’UE"],
+    pilot: "Pilote en cours de développement. Pas encore de marquage CE.",
+    imgAlt: "Le jeu Storm Watch : Luma, une luciole turquoise, à côté d’un bocal de lucioles sous un grand arbre où dort un hibou, la nuit.",
+  },
+  problem: {
+    kicker: "Ça vous dit quelque chose ?",
+    title: "Vous avez une question simple. Personne ne vous donne une réponse claire.",
+    items: [
+      "L’enseignant parle encore de concentration, et vous ne savez pas quoi en faire.",
+      "Les quiz en ligne vous demandent de noter votre propre enfant de 1 à 5, et chacun dit autre chose.",
+      "La famille dit d’attendre, que ça passera. Vous n’êtes pas sûr qu’attendre soit le bon choix.",
+      "Vous aimeriez demander à un professionnel, mais vous ne savez pas à qui, ni quoi apporter.",
+    ],
+    statsIntro: "Deux choses que la recherche nous dit déjà :",
+    stats: [
+      {
+        value: "4+ ans",
+        label: "peut être l’attente pour les services TDAH pour enfants dans le système de santé public anglais.",
+        source: "Independent ADHD Taskforce, Part 1, NHS England, avril 2025 (PRN02031)",
+      },
+      {
+        value: "0,25",
+        label: "est l’accord entre parents et enseignants qui évaluent le même enfant (kappa, où 1 signifie un accord total).",
+        source: "Fu et al., 2026, méta-analyse : 11 études, 8 796 enfants et adolescents (PMID 42865956)",
+      },
+    ],
+    punch: "ADHDCheck ne répond pas à la grande question. Il répond à la première : vaut-il la peine d’en parler à quelqu’un, et à qui ?",
+  },
+  how: {
+    kicker: "Comment ça marche",
+    title: "Trois étapes. Une soirée.",
+    steps: [
+      {
+        title: "Vous touchez Commencer",
+        time: "1 minute",
+        body: "Sur un téléphone ou une tablette, dans le navigateur. Rien à installer. La caméra et le micro restent éteints, sauf si vous les activez.",
+      },
+      {
+        title: "Votre enfant joue",
+        time: "10 à\u00a015 minutes",
+        body: "Donnez-lui l’appareil et regardez-le jouer : une aventure en 3D avec Luma, le long d’une rivière, la nuit. Pas de chrono, pas de sons « faux ! », et votre enfant ne voit jamais de score.",
+      },
+      {
+        title: "Vous obtenez la prochaine étape",
+        time: "tout de suite",
+        body: "À la fin, Luma demande à votre enfant de vous rendre le téléphone. Vous voyez le résultat et à qui parler, gratuitement.",
+      },
+    ],
+    handback: "C’est fini ! Rends maintenant le téléphone à maman ou papa.",
+    handbackLabel: "Ce que votre enfant voit à la fin",
+  },
+  game: {
+    kicker: "Le jeu",
+    title: "Pour votre enfant, c’est une aventure, pas un test.",
+    sub: "De courts mini-jeux dans un seul monde : la rivière de nuit, les lucioles et Luma.",
+    games: [
+      { name: "Treasure Choice", what: "Une pierre précieuse maintenant, ou deux un peu plus tard ?", img: "/landing/treasure-choice-play.jpg" },
+      { name: "Star Path", what: "Les étoiles s’allument une à une. Votre enfant refait le même chemin.", img: "/landing/star-path-play.jpg" },
+      { name: "Bridge Wait", what: "Attendre le signal, puis traverser la rivière.", img: "/landing/bridge-wait-stage.jpg" },
+      { name: "Route Planner", what: "Aider Luma à ramasser les graines lumineuses, une case à la fois.", img: "/landing/route-planner-play.jpg" },
+    ],
+    core: "Le jeu d’attention principal, avec les lucioles, est encore en développement.",
+    coreLabel: "En développement",
+    calm: ["Pas d’écran d’échec", "Pas de classement", "Pas de pression du chrono", "Votre enfant ne voit jamais de résultat"],
+  },
+  result: {
+    kicker: "Ce que vous voyez à la fin",
+    title: "Une phrase simple parmi deux. Puis la prochaine étape.",
+    sub: "Des phrases simples, sans étiquette. Les deux ont le même aspect, sans alarme rouge pour aucune.",
+    a: "Une évaluation par un professionnel est recommandée.",
+    b: "Cette activité n’indique pas de suivi particulier.",
+    next: "Prochaine étape : à qui parler (votre médecin traitant, un pédiatre ou un pédopsychiatre) et quoi apporter.",
+    disclaimer: "Ceci n’est pas un diagnostic. Seul un professionnel peut en poser un.",
+  },
+  offer: {
+    kicker: "Ce que vous obtenez",
+    title: "La réponse est gratuite. Le rapport est à vous si vous le voulez.",
+    free: {
+      label: "Toujours gratuit",
+      price: "0 EUR",
+      items: [
+        "Le résultat : l’une des deux phrases",
+        "La prochaine étape : à qui vous adresser",
+        "Jamais derrière un paiement",
+      ],
+    },
+    paid: {
+      label: "Rapport détaillé",
+      price: "9,99 EUR",
+      priceNote: "paiement unique, sans abonnement",
+      items: [
+        "Un PDF à apporter au rendez-vous",
+        "La date de la séance, le résultat et la mention que ce n’est pas un diagnostic",
+        "Les mesures du jeu",
+        "La prochaine étape : à qui vous adresser",
+      ],
+    },
+    note: "Vous décidez après avoir vu le résultat gratuit. Aucune carte nécessaire pour jouer.",
+    cta: "Accès anticipé gratuit",
+  },
+  privacy: {
+    kicker: "Confidentialité",
+    title: "Conçu dès le premier jour pour les données d’un enfant",
+    items: [
+      { title: "Hébergé dans l’UE", body: "Les données sont stockées sur des serveurs à Francfort, en Allemagne." },
+      { title: "Caméra et micro éteints", body: "Les deux sont éteints au départ. Si vous les activez, ils sont traités sur l’appareil. Aucune vidéo ni aucun son ne quitte le téléphone." },
+      { title: "Pas de score pour l’enfant", body: "Votre enfant ne voit jamais de score ni de résultat. Vous seul les voyez." },
+      { title: "Le moins de données possible", body: "Un surnom et une année de naissance. Pas de nom de famille, pas de photo." },
+      { title: "Suppression à tout moment", body: "Vous pouvez supprimer le profil de votre enfant et toutes ses séances quand vous le voulez." },
+    ],
+  },
+  faq: {
+    kicker: "FAQ",
+    title: "Ce que les parents demandent avant de commencer",
+    items: [
+      {
+        q: "Est-ce un diagnostic ?",
+        a: "Non. ADHDCheck ne pose pas de diagnostic et ne remplace pas un médecin ou un psychologue. Il vous aide à décider s’il faut parler à un professionnel de l’attention et de la concentration de votre enfant, et à qui vous adresser.",
+      },
+      {
+        q: "Est-il prêt à l’emploi ?",
+        a: "C’est un pilote en cours de développement. Il n’a pas encore de marquage CE, et ses seuils n’ont pas encore été vérifiés dans une étude clinique. C’est pourquoi le résultat est une recommandation, pas un verdict.",
+      },
+      {
+        q: "Pour quel âge ?",
+        a: "Les enfants de 6 à 12 ans.",
+      },
+      {
+        q: "Combien de temps cela prend-il ?",
+        a: "10 à 15 minutes de jeu. Vous pouvez arrêter à tout moment.",
+      },
+      {
+        q: "Les données de mon enfant sont-elles en sécurité ?",
+        a: "Nous ne gardons qu’un surnom, une année de naissance et la façon dont votre enfant a joué (touches et temps). Les données sont stockées sur des serveurs à Francfort. La caméra et le micro sont éteints par défaut ; si vous les activez, ils sont traités sur l’appareil et seuls des comptes et des durées le quittent, jamais d’images ni de son. Le jeu fonctionne de la même façon sans eux.",
+      },
+      {
+        q: "Combien de temps gardez-vous les données ?",
+        a: "La durée de conservation exacte est fixée pendant le pilote et sera écrite dans la politique de confidentialité avant le lancement. D’ici là, vous pouvez supprimer le profil et toutes ses séances à tout moment.",
+      },
+      {
+        q: "Qu’est-ce que j’obtiens pour 9,99 EUR ?",
+        a: "Un rapport PDF détaillé pour cette séance, payé une seule fois ; après le paiement, nous vous envoyons par e-mail un lien vers ce rapport dans votre espace parent. Pas d’abonnement, rien ne se renouvelle. Le résultat et la prochaine étape restent gratuits, que vous l’achetiez ou non.",
+      },
+      {
+        q: "Mon enfant prend déjà un médicament. Est-ce que cela a encore un sens ?",
+        a: "Vous pouvez l’utiliser, mais nous vous demanderons de nous le dire, car un médicament change la façon dont les enfants réagissent dans le jeu.",
+      },
+    ],
+  },
+  final: {
+    title: "10 à\u00a015 minutes de jeu. Une prochaine étape claire.",
+    sub: "ADHDCheck est actuellement en phase pilote. Laissez votre e-mail et nous vous enverrons le lien dès que vous pourrez jouer.",
+    formLabel: "Votre adresse e-mail",
+    formPlaceholder: "nom@exemple.com",
+    formCta: "Accès anticipé gratuit",
+    formNote: "Un seul e-mail quand vous pourrez commencer. Pas de spam.",
+    consent: "En vous inscrivant, vous acceptez que nous conservions votre adresse e-mail et une langue de contact pour vous prévenir quand vous pourrez jouer. Nous ne les utilisons pour rien d’autre, et vous pouvez nous demander de les supprimer à tout moment.",
+    formSuccess: "C’est fait ! Vous êtes sur la liste. Nous vous écrirons dès que vous pourrez commencer.",
+    formError: "Cette adresse ne semble pas correcte. Vérifiez-la et réessayez.",
+    formFail: "Une erreur s’est produite. Réessayez dans quelques secondes.",
+    sending: "Envoi…",
+  },
+  footer: {
+    pilot: "Pilote en cours de développement. Pas encore de marquage CE.",
+    disclaimer: "ADHDCheck est un outil d’orientation. Il ne pose pas de diagnostic et ne remplace pas une évaluation par un médecin ou un psychologue. Les seuils sont indicatifs et n’ont pas encore été vérifiés dans une étude clinique.",
+    event: "Réalisé au hackathon BeaHealth 2026.",
+  },
+  sticky: "Accès anticipé gratuit",
+};
+
+export const content: Record<Lang, Dict> = { ro, en, fr };

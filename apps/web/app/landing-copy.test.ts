@@ -1,5 +1,5 @@
 // Wording gate for the landing page (docs/02 section 2.3, FR-34, NFR-50; research/05 block 9.3, MDR Art. 7).
-// Scans every string in content.ts (RO and EN) and the server-rendered page for wording the product may
+// Scans every string in content.ts (RO, EN and FR) and the server-rendered page for wording the product may
 // not use. A word that is only allowed inside a negation ("not a diagnosis") is checked per sentence.
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -37,9 +37,12 @@ describe("landing wording gate", () => {
     expect(findUnnegated(["Get a diagnosis in 15 minutes."])).not.toEqual([]);
     expect(findUnnegated(["It is not a diagnosis."])).toEqual([]);
     expect(findUnnegated(["Nu este un diagnostic."])).toEqual([]);
+    expect(findUnnegated(["Ceci n’est pas un diagnostic."])).toEqual([]);
+    expect(findUnnegated(["Obtenez un diagnostic en 15 minutes."])).not.toEqual([]);
+    expect(findBannedWording(["Un traitement cliniquement prouvé."])).not.toEqual([]);
   });
 
-  for (const lang of ["ro", "en"] as const) {
+  for (const lang of ["ro", "en", "fr"] as const) {
     it(`content.ts (${lang}) has no banned wording`, () => {
       const all = strings(content[lang]);
       expect(findBannedWording(all)).toEqual([]);
@@ -65,7 +68,7 @@ describe("landing wording gate", () => {
     for (const figure of meta.match(/\d+(?:–\d+)?/g) ?? []) expect(page).toContain(figure);
   });
 
-  for (const lang of ["ro", "en"] as const) {
+  for (const lang of ["ro", "en", "fr"] as const) {
     // D-05b (DECIDED, Hatem, 2026-10-20): the detailed report is 9.99 EUR, a one-off payment per report, and
     // checkout sells exactly that (mode "payment"). The page states that price and no other figure, and no
     // subscription. The paid items list only what lib/report.ts buildReport puts in the PDF, and the result
@@ -74,12 +77,12 @@ describe("landing wording gate", () => {
       const t = content[lang];
       const all = strings(t).join(" ").toLowerCase();
       expect(t.offer.paid.price).toBe(lang === "en" ? "9.99 EUR" : "9,99 EUR");
-      expect(t.offer.paid.priceNote.toLowerCase()).toMatch(lang === "en" ? /one-off/ : /o singură dată/);
+      expect(t.offer.paid.priceNote.toLowerCase()).toMatch({ en: /one-off/, ro: /o singură dată/, fr: /paiement unique/ }[lang]);
       const figures = [...all.matchAll(/\d+[.,]\d{2}\s*(?:eur|€)/g)].map((m) => m[0].replace(",", "."));
       expect(new Set(figures)).toEqual(new Set(["9.99 eur"]));
-      expect(all).not.toMatch(/price to be confirmed|preț în curs de stabilire|per month|pe lună|monthly|lunar|family plan|plan de familie/);
-      expect(t.offer.paid.items.join(" ").toLowerCase()).not.toMatch(/device|dispozitiv|quality|calitate|each mini-game|fiecare mini-joc/);
-      expect(t.result.sub.toLowerCase()).not.toMatch(/percent|procent/);
+      expect(all).not.toMatch(/price to be confirmed|preț în curs de stabilire|per month|pe lună|monthly|lunar|family plan|plan de familie|par mois|mensuel|formule famille/);
+      expect(t.offer.paid.items.join(" ").toLowerCase()).not.toMatch(/device|dispozitiv|dispositif|quality|calitate|qualité|each mini-game|fiecare mini-joc|chaque mini-jeu/);
+      expect(t.result.sub.toLowerCase()).not.toMatch(/percent|procent|pourcent/);
     });
 
     it(`states the pilot status and the GDPR consent (${lang})`, () => {

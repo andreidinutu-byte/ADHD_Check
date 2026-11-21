@@ -16,7 +16,8 @@ let memLang: Lang | null = null;
 function readLang(): Lang {
   if (memLang) return memLang;
   try {
-    return localStorage.getItem(LANG_KEY) === "en" ? "en" : "ro";
+    const v = localStorage.getItem(LANG_KEY);
+    return v === "en" || v === "fr" ? v : "ro";
   } catch {
     return "ro";
   }
@@ -182,14 +183,14 @@ function Logo({ dark = false }: { dark?: boolean }) {
 
 function LangToggle({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) => void; label: string }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-xl border border-story-line bg-story-surface p-1">
-      {(["ro", "en"] as const).map((l) => (
+    <div role="group" aria-label={label} className="flex rounded-xl border border-story-line bg-story-surface p-0.5 sm:p-1">
+      {(["ro", "en", "fr"] as const).map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => setLang(l)}
           aria-pressed={lang === l}
-          className={`min-h-10 min-w-11 cursor-pointer rounded-lg px-3 text-xs font-bold uppercase tracking-wider transition-all ${
+          className={`min-h-10 min-w-9 cursor-pointer rounded-lg px-1.5 text-xs sm:min-w-11 sm:px-3 font-bold uppercase tracking-wider transition-all ${
             lang === l
               ? "border border-story-line bg-story-night-alt text-story-ink shadow-xs"
               : "text-story-muted hover:text-story-ink"
@@ -217,7 +218,7 @@ function Header({ t, lang, setLang }: { t: Dict; lang: Lang; setLang: (l: Lang) 
           <LangToggle lang={lang} setLang={setLang} label={t.nav.langLabel} />
           <a
             href="/login"
-            className="inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-2 text-sm font-semibold text-story-muted transition-colors hover:text-story-ink sm:px-3"
+            className="inline-flex min-h-10 items-center whitespace-nowrap rounded-lg px-1 text-sm font-semibold text-story-muted transition-colors hover:text-story-ink sm:px-3"
           >
             {t.nav.login}
           </a>
@@ -764,7 +765,7 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!/^[^s@]+@[^s@]+.[^s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setState("invalid");
       return;
     }
@@ -773,7 +774,8 @@ function Final({ t, lang }: { t: Dict; lang: Lang }) {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, lang }),
+        // The waitlist stores ro or en (PocketBase select); French signups are kept as en for now.
+        body: JSON.stringify({ email, lang: lang === "fr" ? "en" : lang }),
       });
       setState(res.ok ? "ok" : res.status === 400 ? "invalid" : "fail");
     } catch {
